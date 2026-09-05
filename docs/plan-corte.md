@@ -79,10 +79,17 @@ no necesitar coexistencia entre sistemas.
             `docs/memory.md`): `salida` no valida contra el acumulado
             disponible, permite dejarlo en negativo. A confirmar con Luis si
             es comportamiento deseado antes del corte.
-      - [ ] Agenda, Almuerzo, Auth (login — cobertura de endpoint, más allá
-            del mecanismo ya verificado), Bitacora, Concepto, Formatos,
-            Minuta, Permiso, Practicante, Reporte, Residente (cambios de
-            estado/biometría), Seguimiento, System, Terapia, User — sin
+      - [x] Almuerzo (`AlmuerzoTest.php`) — sin bugs.
+      - [x] Auth (`AuthTest.php`) — endpoint de login/logout, sin bugs
+            (el mecanismo MD5→Bcrypt ya se había verificado antes).
+      - [x] Residente (`ResidenteTest.php`) — **bug real encontrado y
+            corregido**: `history()` (`GET /api/residentes/{id}/history`)
+            filtraba `abonopensiones` por una columna `idresidentes` que no
+            existe en esa tabla — crashea en MySQL real cada vez que se pide
+            el historial consolidado de un residente. SQLite (tests) lo
+            enmascaraba silenciosamente. Ver `docs/memory.md`.
+      - [ ] Agenda, Bitacora, Concepto, Formatos, Minuta, Permiso,
+            Practicante, Reporte, Seguimiento, System, Terapia, User — sin
             tocar todavía.
 - [ ] Backup manual explícito de la base real, tomado justo antes de la
       ventana de corte (ver § 1 — no hay backups automáticos).

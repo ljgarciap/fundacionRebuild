@@ -140,10 +140,31 @@ diferencia del caso de Tienda, no hay ninguna mención en `consolidado.md` de
 que esa validación debería existir, así que no se asumió una regla de
 negocio nueva sin confirmar con Luis primero.
 
-Sigue pendiente (sin tocar todavía): Agenda, Almuerzo, Auth (cobertura de
-endpoint), Bitacora, Concepto, Formatos, Minuta, Permiso, Practicante,
-Reporte, Residente (cambios de estado/biometría), Seguimiento, System,
-Terapia, User.
+Sigue pendiente (sin tocar todavía): Agenda, Bitacora, Concepto, Formatos,
+Minuta, Permiso, Practicante, Reporte, Seguimiento, System, Terapia, User.
+
+### Fix real del bloqueo de "modo autónomo" en este proyecto (5 de Septiembre, 2026, noche)
+Incidente largo en medio de la ronda de QA: "modo autónomo" (mecanismo
+workspace-wide, ver `CLAUDE.md` de Softclass) no tenía ningún efecto acá,
+pese a funcionar bien en el resto de los proyectos del workspace, en la
+misma máquina. Causa raíz real, confirmada contra la documentación oficial
+de Claude Code (`github.com/anthropics/claude-code` issue #12962): Claude
+Code no sube a directorios padre a buscar `.claude/settings.json` cuando el
+directorio de trabajo actual tiene su propio `.git` — y `backend/`/`frontend/`
+son justo eso, repos propios (decisión deliberada de este proyecto, ver
+`CLAUDE.md`). Como ninguno tenía su propio `.claude/settings.json`, los hooks
+de `risk-classifier.sh`/`mode-marker-write.sh` (que viven en la raíz,
+`FundacionRebuild/.claude/settings.json`, un repo distinto) nunca se
+ejecutaban ahí. Fix: copiar el mismo `settings.json` a `backend/.claude/` y
+`frontend/.claude/`, commiteado en cada repo respectivo.
+
+Nota aparte para no repetir la confusión: durante el diagnóstico aparecieron
+bloqueos de "Blocked by classifier" al intentar editar `risk-classifier.sh` y
+escribir `settings.json` — eso es una capa totalmente distinta (el
+clasificador de seguridad propio de Claude Code, no configurable por hooks ni
+por proyecto), que bloquea a cualquier agente editando infraestructura de
+permisos en cualquier proyecto, en cualquier máquina. No es un bug de este
+proyecto ni tiene fix posible — es intencional.
 
 ## Módulos Implementados
 
