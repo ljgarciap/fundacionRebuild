@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/Documents/GitHub/Softclass/.claude/scripts/risk-classifier.sh\"",
+            "shell": "bash",
+            "timeout": 14400
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/Documents/GitHub/Softclass/.claude/scripts/mode-marker-write.sh\"",
+            "shell": "bash"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/Documents/GitHub/Softclass/.claude/scripts/notify-sound.sh\"",
+            "shell": "bash",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
