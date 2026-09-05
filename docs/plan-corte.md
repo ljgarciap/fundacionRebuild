@@ -29,12 +29,23 @@ Opciones típicas para este tipo de refactor — **ninguna elegida todavía**:
   forma limpia en el esquema legado — a confirmar si eso ya es así.
 
 ## 3. Validación previa al corte (bloqueante, sin importar la estrategia elegida)
-- [ ] Cobertura de tests del proceso de **Ingreso** (multi-tabla, atómico,
-      con biometría) — hoy no tiene test dedicado, es el proceso más crítico.
-- [ ] Resolver `actores` y `efectivo` (ver `consolidado.md` — dos tablas
+- [x] Cobertura de tests del proceso de **Ingreso** (multi-tabla, atómico) —
+      cerrado 2026-09-05, ver `backend/tests/Feature/IngresoTest.php` (6 tests:
+      creación atómica cross-tabla, reenvío sin duplicar cargos, acudiente
+      existente conserva su rol de staff, rollback completo si falta
+      `guardian_data`). Biometría (firma/huella) queda fuera de este archivo —
+      no tiene test dedicado todavía, ver nota abajo.
+- [x] Resolver `actores` y `efectivo` (ver `consolidado.md` — dos tablas
       "Pendiente" sin decisión de si siguen vigentes en la operación real).
-- [ ] Confirmar mecanismo real de migración de contraseñas MD5 → Bcrypt
-      (ver `CLAUDE.md` del proyecto, sección de reglas específicas).
+- [x] Confirmar mecanismo real de migración de contraseñas MD5 → Bcrypt —
+      cerrado 2026-09-05: `AuthController::login` intenta Bcrypt primero y cae
+      a MD5 contra `validacion.password` (ahí vivía el hash legacy real, no en
+      `usuarios.password`), con upgrade silencioso a Bcrypt al validar por esa
+      vía. Transparente para el usuario, cumple la regla del `CLAUDE.md`. Doc
+      de `validacion` corregida en `consolidado.md` (describía solo su función
+      biométrica, no la de password legacy).
+- [ ] Cobertura de tests de **biometría en Ingreso** (firma/huella, tabla
+      `validacion`) — no incluida en `IngresoTest.php`, sigue pendiente.
 - [ ] Ambiente de staging con datos reales (o una copia fiel) antes del corte
       — hoy todo el trabajo es contra MySQL local con el dump de referencia.
 - [ ] Ronda de QA formal por módulo contra los criterios de aceptación de

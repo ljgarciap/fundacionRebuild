@@ -46,6 +46,36 @@ Se integró y estabilizó por completo el nuevo Centro de Reportes:
 4. **Paginación y Estado Angular:** Se introdujeron controladores de paginación locales e independientes por pestaña para mejorar el rendimiento de renderizado, y se implementó la escucha manual de estados mediante `ChangeDetectorRef.detectChanges()` en los callbacks asíncronos HTTP RxJS.
 5. **Modales Interactivos Detallados:** Se diseñaron modales glassmorphic interactivos y scrollables para visualizar los motivos de reingreso y los detalles integrales de evolución de Psicología (resumen, diagnóstico, técnicas y tareas).
 
+### Retoma de sesión: cierre de 2 bloqueantes de `plan-corte.md` (5 de Septiembre, 2026, tarde)
+Continuación de la auditoría de la mañana. Se resolvieron, sin necesitar decisión
+de negocio, dos de los ítems de la sección 3 ("Validación previa al corte"):
+- **Cobertura de tests de Ingreso**: no existía ningún test para el proceso
+  multi-tabla atómico más crítico del sistema. Se creó
+  `backend/tests/Feature/IngresoTest.php` (6 tests, 22/22 pasan en la suite
+  completa) cubriendo: creación atómica cross-tabla de un residente nuevo
+  (`residentes`, `actores`, `cobrospension`+`abonopensiones`, `uniformes`,
+  `historiali`, `historial`, `historialm`, `usuarios`+`asociacion` para el
+  acudiente), reenvío del mismo documento sin duplicar cargos/historiales,
+  acudiente que ya es staff conserva su rol (soporte multi-rol), y rollback
+  transaccional completo si falta `guardian_data`. Antes de escribir el
+  rollback se verificó en `ResidenteController::updateStatus` que el patrón
+  "si ya existe, no duplicar" de `historiali`/`historial`/`historialm` en
+  `IngresoController` es correcto y no un bug: el reingreso real (residente
+  Inactivo que vuelve a Activo) pasa por `updateStatus`, no por `/ingresos` de
+  nuevo — evitó una corrección innecesaria sobre código que ya funcionaba bien.
+  Queda pendiente cobertura de biometría (firma/huella) dentro de Ingreso.
+- **Mecanismo MD5 → Bcrypt**: confirmado en `AuthController::login` — intenta
+  Bcrypt primero, cae a MD5 contra `validacion.password` (ahí vivía el hash
+  legacy real; `usuarios.password` viene vacío en el dump), con upgrade
+  silencioso a Bcrypt al validar por esa vía. Transparente para el usuario.
+  Se corrigió `consolidado.md`: la fila de `validacion` describía solo su
+  función de auditoría biométrica, no que también es el repositorio del
+  password legacy — la tabla cumple doble función.
+
+Sigue abierto (requiere decisión de negocio de Luis, no se resuelve solo):
+estrategia de corte a producción y estado real de operación del legado —
+secciones 1 y 2 de `plan-corte.md`.
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad

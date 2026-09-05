@@ -61,7 +61,7 @@ A continuación se detalla la matriz de mapeo que asocia cada una de las 50 tabl
 | **47** | `tipologia` | **Consolidado** | `DB::table('tipologia')` | Solo lectura: Entrada (1) / Salida (2). Expuesta via `/api/tipologias`. |
 | **48** | `uniformes` | **Consolidado** | `App\Models\Uniforme` | Inventario, entrega y cobro de uniformes a residentes. |
 | **49** | `usuarios` | **Consolidado** | `App\Models\User` | Credenciales de login administrativo. |
-| **50** | `validacion` | **Consolidado** | `App\Models\Validacion` | Auditoría de tokens biométricos de firmas y huellas. |
+| **50** | `validacion` | **Consolidado** | `App\Models\Validacion` | Doble función: auditoría de tokens biométricos de firmas/huellas, **y** repositorio del hash MD5 de login legacy (`usuarios.password` viene vacío en el dump — el MD5 real vivía acá, un registro por `idusuarios`). `AuthController::login` la usa como fallback cuando Bcrypt no matchea, y hace upgrade silencioso a Bcrypt en `usuarios.password` al validar por esta vía (verificado 2026-09-05). |
 
 ---
 
