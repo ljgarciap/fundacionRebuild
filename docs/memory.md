@@ -103,6 +103,48 @@ Lo único que queda pendiente en `plan-corte.md` es la checklist técnica de
 § 3 (staging, QA formal completa, backup manual explícito pre-corte, fecha de
 la ventana) — sin más bloqueantes de negocio de por medio.
 
+### Ronda de QA formal de § 3: 2 bugs reales encontrados en el primer batch (5 de Septiembre, 2026, noche)
+Arranque de la ronda de QA formal de `plan-corte.md` § 3, por orden de riesgo
+(módulos que mueven dinero real primero, ya que con Big Bang decidido no hay
+coexistencia con el legado que amortigüe un error). Cobertura agregada:
+`PagoTest.php`, `ChargePensionsTest.php`, `TiendaTest.php`, `AhorroTest.php`
+(25 tests nuevos, 47/47 pasan en la suite completa). Se encontraron y
+corrigieron 2 bugs de correctness reales en código ya dado por "implementado"
+en `consolidado.md` — exactamente el tipo de hallazgo que esta ronda existe
+para atrapar antes del corte, no después:
+
+1. **`pensions:charge` crasheaba siempre.** El comando programado
+   (`Schedule::command('pensions:charge')->dailyAt('01:00')`, ver
+   `routes/console.php`) usa `CobroPension::whereHas('residente', ...)`, pero
+   el modelo `CobroPension` no tenía ningún método `residente()` definido —
+   `BadMethodCallException` en cada ejecución, confirmado corriendo el
+   comando dentro del harness de test (no en tinker, que apunta a MySQL real
+   inexistente en esta máquina). Si esto llegaba a producción tal cual, el
+   cobro automático de pensiones fallaba en silencio todas las noches, sin
+   ningún mecanismo que lo detectara hasta una conciliación financiera. Fix:
+   se agregó la relación (mismo patrón que ya usa `Uniforme::residente()`).
+2. **`TiendaController::storeSale` no validaba stock en el servidor.**
+   `consolidado.md` documenta "validar stock contra la base de datos" como
+   parte ya implementada del POS, pero el endpoint insertaba la venta y
+   descontaba el saldo del residente sin chequear en ningún punto que
+   hubiera unidades disponibles — se podía vender en stock negativo
+   llamando al endpoint directo. Fix: se agregó la validación (atómica por
+   carrito — si un solo ítem no tiene stock suficiente, se rechaza la venta
+   completa antes de tocar la base) más los tests de regresión.
+
+Queda 1 observación abierta, no corregida a propósito por no tener base
+documental que la respalde (a diferencia de los 2 casos de arriba): en
+`AhorroController::store`, una `salida` (retiro) no valida contra el
+acumulado disponible — puede dejar el saldo general en negativo. A
+diferencia del caso de Tienda, no hay ninguna mención en `consolidado.md` de
+que esa validación debería existir, así que no se asumió una regla de
+negocio nueva sin confirmar con Luis primero.
+
+Sigue pendiente (sin tocar todavía): Agenda, Almuerzo, Auth (cobertura de
+endpoint), Bitacora, Concepto, Formatos, Minuta, Permiso, Practicante,
+Reporte, Residente (cambios de estado/biometría), Seguimiento, System,
+Terapia, User.
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad

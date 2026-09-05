@@ -70,6 +70,20 @@ no necesitar coexistencia entre sistemas.
       migrado (no solo verificación técnica de que compila/corre) — con Big
       Bang, esta ronda cubre **todos** los módulos antes del corte, no puede
       quedar ninguno para "después" como sí permitía corte por módulo.
+      **Progreso** (empezado 2026-09-05, orden de riesgo: dinero real primero):
+      - [x] Ingreso (`IngresoTest.php`)
+      - [x] Pago/Pensiones (`PagoTest.php`, `ChargePensionsTest.php`) — **2
+            bugs reales encontrados y corregidos**, ver `docs/memory.md`.
+      - [x] Tienda/POS (`TiendaTest.php`) — 1 bug real encontrado y corregido.
+      - [x] Ahorro (`AhorroTest.php`) — 1 observación abierta (no es bug, ver
+            `docs/memory.md`): `salida` no valida contra el acumulado
+            disponible, permite dejarlo en negativo. A confirmar con Luis si
+            es comportamiento deseado antes del corte.
+      - [ ] Agenda, Almuerzo, Auth (login — cobertura de endpoint, más allá
+            del mecanismo ya verificado), Bitacora, Concepto, Formatos,
+            Minuta, Permiso, Practicante, Reporte, Residente (cambios de
+            estado/biometría), Seguimiento, System, Terapia, User — sin
+            tocar todavía.
 - [ ] Backup manual explícito de la base real, tomado justo antes de la
       ventana de corte (ver § 1 — no hay backups automáticos).
 - [ ] Fecha/horario de la ventana de corte (a definir con Luis).
