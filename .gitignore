@@ -1,0 +1,16 @@
+# Este repo solo versiona docs/ y metadata del proyecto.
+# backend/ y frontend/ son repos git independientes (remotos propios:
+# fundacionBackend, fundacionFrontend) — no se trackean acá.
+/backend/
+/frontend/
+
+# Código legado (monolito PHP) — tiene su propio repo (fundacionMonolithic)
+# dentro de fundacion/ingreso/. El resto de fundacion/ es dump de datos/activos
+# de referencia, no código a versionar (293MB+, incluye el dump SQL de 17MB).
+/fundacion/
+
+# PDFs de prueba generados localmente (formatos de impresión)
+/formatos/*.pdf
+/formatos/legacy/
+
+.DS_Store
