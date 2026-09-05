@@ -11,7 +11,8 @@ rehabilitación, sedes JOREC y Jesús es mi Roca) a una arquitectura moderna,
 - **Base de datos**: MySQL/MariaDB, esquema original preservado (no se migra
   a un esquema nuevo — Laravel lee/escribe directo sobre las tablas legadas).
 - **Legado**: PHP monolítico original en `fundacion/` (repo propio — remoto
-  `fundacionMonolithic`, subcarpeta `fundacion/ingreso/`). Se conserva como
+  `fundacionOld`, subcarpeta `fundacion/ingreso/`; corregido 2026-09-05, el
+  remoto local apuntaba mal a `fundacionMonolithic`). Se conserva como
   referencia funcional mientras dure la migración — no se modifica.
 
 **Nota de versiones**: verificar versión real instalada antes de asumir la de
