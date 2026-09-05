@@ -1,32 +1,46 @@
 # Plan de Corte a Producción — Fundación Rebuild
 
-Estado: **esqueleto, sin completar**. Creado 2026-09-05 al retomar el
-proyecto — la auditoría de ese día encontró que no existía ningún plan de
-corte, staging ni CI/CD, pese a que la migración de módulos críticos está
-casi terminada según `consolidado.md`. Este documento no se puede completar
-sin decisiones de negocio de Luis — están marcadas como preguntas abiertas.
+Estado: **decisiones de negocio cerradas, checklist técnica en curso**.
+Creado 2026-09-05 al retomar el proyecto — la auditoría de ese día encontró
+que no existía ningún plan de corte, staging ni CI/CD, pese a que la
+migración de módulos críticos está casi terminada según `consolidado.md`.
+Mismo día, daily con Luis: estrategia definida (**Big Bang**, § 2), operación
+actual del legado confirmada (§ 1) y plan de rollback acordado (§ 4). Lo que
+resta es exclusivamente técnico — ver checklist § 3.
 
-## 1. Operación actual del sistema legado (pendiente de confirmar con Luis)
-- ¿Dónde corre hoy en producción el sistema PHP monolítico — mismo hosting
-  de origen del dump (`u727327027_...`, aparenta ser cPanel/Hostinger) u otro?
-- ¿Quién lo administra/tiene acceso? ¿Hay backups automáticos corriendo hoy
-  sobre esa base, independientes de este proyecto?
-- ¿Cuál es el volumen de escritura diaria real (ingresos, pagos, ventas de
-  tienda, seguimientos de psicología) que seguiría entrando al sistema viejo
-  mientras se termina de validar el nuevo?
+## 1. Operación actual del sistema legado
+- [x] **¿Dónde corre hoy en producción?** Confirmado por Luis (daily
+      2026-09-05): el mismo hosting de origen del dump (`u727327027_...`,
+      cPanel/Hostinger). No hay un hosting distinto que reconciliar.
+- [x] **¿Quién administra/tiene acceso? ¿Hay backups automáticos?**
+      Confirmado por Luis (daily 2026-09-05): el acceso lo tiene él mismo;
+      **no hay backups automáticos** — solo respaldos manuales. Implicación
+      para § 4 (rollback): no asumir que existe una copia reciente al momento
+      del corte — hay que sacar un dump manual explícito justo antes, como
+      paso obligatorio del plan (no un "ya está cubierto").
+- [x] **¿Volumen de escritura diaria real?** Confirmado por Luis (daily
+      2026-09-05): el legado **sigue operando activo hoy** (ingresos, pagos,
+      ventas, seguimientos entrando en vivo) — no está en modo de solo
+      consulta. Implicación técnica para § 2: `backend/.env` apunta hoy a
+      MySQL **local** (copia del dump, no la base real del hosting) — sea
+      cual sea la estrategia elegida, en algún punto el sistema nuevo debe
+      apuntar a la base real para no perder lo que el legado sigue generando
+      mientras se valida. Esto no elimina ninguna opción de § 2, pero cambia
+      su costo relativo: "big bang" evita sostener dos sistemas escribiendo
+      sobre la misma base en paralelo; "corte por módulo" y "piloto por sede"
+      exigen resolver esa convivencia antes de arrancar, no después.
 
-## 2. Estrategia de corte (a decidir)
-Opciones típicas para este tipo de refactor — **ninguna elegida todavía**:
-- **Big bang**: se congela el sistema viejo un fin de semana, se migra el
-  dump final, se activa el nuevo sistema. Simple, pero exige ventana de
-  downtime y que todos los módulos estén 100% validados antes.
-- **Corte por módulo**: se van apagando módulos del viejo sistema a medida
-  que su equivalente en Laravel/Angular pasa QA (ej. primero Tienda, después
-  Finanzas). Más lento, pero de menor riesgo — exige que ambos sistemas
-  puedan convivir leyendo la misma base sin pisarse mientras dure la transición.
-- **Piloto**: una sede (JOREC o Jesús es mi Roca) migra primero, la otra
-  sigue en el sistema viejo un tiempo. Requiere separar datos por sede de
-  forma limpia en el esquema legado — a confirmar si eso ya es así.
+## 2. Estrategia de corte — **decidido: Big Bang** (Luis, daily 2026-09-05)
+Se descartan "corte por módulo" y "piloto por sede" — ambas exigían resolver
+la convivencia de los dos sistemas escribiendo en paralelo sobre la base real
+(ver nota técnica en § 1), costo que Big Bang evita de raíz.
+
+**Mecánica acordada**: se congela el legado (ventana de downtime, día/horario
+a definir), se saca un backup manual explícito de la base real del hosting
+(no hay backups automáticos — ver § 1), se apunta `backend/.env` a esa base
+real (hoy apunta a MySQL local), se activa el nuevo sistema. Exige que **todos**
+los módulos estén validados antes — ver checklist § 3, ahora simplificada al
+no necesitar coexistencia entre sistemas.
 
 ## 3. Validación previa al corte (bloqueante, sin importar la estrategia elegida)
 - [x] Cobertura de tests del proceso de **Ingreso** (multi-tabla, atómico) —
@@ -46,19 +60,35 @@ Opciones típicas para este tipo de refactor — **ninguna elegida todavía**:
       biométrica, no la de password legacy).
 - [ ] Cobertura de tests de **biometría en Ingreso** (firma/huella, tabla
       `validacion`) — no incluida en `IngresoTest.php`, sigue pendiente.
-- [ ] Ambiente de staging con datos reales (o una copia fiel) antes del corte
-      — hoy todo el trabajo es contra MySQL local con el dump de referencia.
-- [ ] Ronda de QA formal por módulo contra los criterios de aceptación de
-      cada proceso migrado (no solo verificación técnica de que compila/corre).
+- [ ] Ambiente de staging con **una copia fresca de la base real del hosting**
+      (no el dump original de referencia, que ya tiene 8 años — el legado
+      sigue escribiendo hoy, ver § 1) antes del corte. Con Big Bang decidido,
+      este paso es más crítico que antes: no hay módulos escalonados que
+      absorban sorpresas, así que la última validación tiene que verse contra
+      datos reales y actuales, no contra el dump histórico.
+- [ ] Ronda de QA formal contra los criterios de aceptación de cada proceso
+      migrado (no solo verificación técnica de que compila/corre) — con Big
+      Bang, esta ronda cubre **todos** los módulos antes del corte, no puede
+      quedar ninguno para "después" como sí permitía corte por módulo.
+- [ ] Backup manual explícito de la base real, tomado justo antes de la
+      ventana de corte (ver § 1 — no hay backups automáticos).
+- [ ] Fecha/horario de la ventana de corte (a definir con Luis).
 
-## 4. Plan de rollback (a definir)
-- ¿Cuánto tiempo se mantiene el sistema viejo disponible en modo
-  solo-lectura después del corte, por si aparece un caso no contemplado?
-- ¿Quién tiene la decisión de activar un rollback si algo falla el día del
-  corte, y con qué criterio?
+## 4. Plan de rollback — **decidido** (Luis, daily 2026-09-05)
+- [x] **Ventana de solo-lectura**: el legado se mantiene disponible en modo
+      solo-lectura **1 semana** después del corte, por si aparece un caso no
+      contemplado.
+- [x] **Decisión de rollback**: la toma **Luis**, sin un criterio formal
+      pre-establecido — a su juicio en el momento, caso por caso.
 
 ---
-**Próximo paso**: agendar un daily con Luis específicamente para esta
-sección — no es una decisión técnica que el Arquitecto pueda resolver solo
-(ver "Autonomía del equipo de agentes" en el `CLAUDE.md` del workspace,
+Las 3 secciones de decisión de negocio (§ 1, § 2, § 4) quedaron **cerradas**
+en el daily del 2026-09-05. Lo único pendiente en este documento es la
+checklist técnica de § 3 (staging con copia fresca de la base real, QA formal
+completa, backup manual pre-corte, fecha/horario de la ventana — este último
+también a definir con Luis más adelante, cuando § 3 esté lista).
+
+**Próximo paso**: cerrar la checklist técnica de § 3 (staging, QA formal,
+backup manual, fecha de ventana) — sin más decisiones de negocio bloqueantes
+de por medio.
 categoría "decisión de negocio").

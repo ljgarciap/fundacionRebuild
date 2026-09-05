@@ -76,6 +76,33 @@ Sigue abierto (requiere decisión de negocio de Luis, no se resuelve solo):
 estrategia de corte a producción y estado real de operación del legado —
 secciones 1 y 2 de `plan-corte.md`.
 
+### Daily de plan-corte: las 3 decisiones de negocio cerradas (5 de Septiembre, 2026, tarde)
+Daily puntual con Luis enfocado exclusivamente en las preguntas abiertas de
+`plan-corte.md`. Resultado — las 3 secciones de decisión de negocio quedaron
+cerradas en la misma sesión:
+- **§ 1 (operación actual)**: el legado sigue operando activo hoy, en el
+  mismo hosting de origen del dump (cPanel/Hostinger), con acceso propio de
+  Luis y **solo backups manuales** (sin automatización). Esto expuso un
+  detalle técnico no evidente hasta ahora: `backend/.env` apunta hoy a MySQL
+  **local** (copia del dump), no a la base real — sea cual sea la estrategia,
+  hay que apuntar el sistema nuevo a la base real en algún momento para no
+  perder lo que el legado sigue generando.
+- **§ 2 (estrategia de corte)**: **Big Bang**. Se descartaron "por módulo" y
+  "piloto por sede" porque ambas exigían resolver la convivencia de los dos
+  sistemas escribiendo en paralelo sobre la base real — costo que Big Bang
+  evita. Esto simplificó la checklist de § 3: ya no hace falta esa
+  convivencia, pero subió de prioridad el staging con una copia **fresca**
+  de la base real (no el dump de 8 años) y una ronda de QA formal que cubra
+  **todos** los módulos antes del corte (no puede quedar ninguno para
+  después, como sí permitía el corte por módulo).
+- **§ 4 (rollback)**: legado disponible en modo solo-lectura **1 semana**
+  post-corte; la decisión de activar un rollback la toma Luis, sin un
+  criterio formal pre-establecido.
+
+Lo único que queda pendiente en `plan-corte.md` es la checklist técnica de
+§ 3 (staging, QA formal completa, backup manual explícito pre-corte, fecha de
+la ventana) — sin más bloqueantes de negocio de por medio.
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad
