@@ -3,6 +3,31 @@
 ## Estado Actual
 Migración completada de los módulos críticos del sistema PHP legado a una arquitectura moderna (Laravel 11 + Angular 19). El sistema es ahora 100% funcional para la operación diaria, con alta fidelidad visual y seguridad mejorada.
 
+### Retoma del proyecto y cierre de `actores`/`efectivo` (5 de Septiembre, 2026)
+Tras varios meses sin actividad, se retomó el proyecto con una auditoría completa
+del estado real (no solo de lo que decían los `.md`): repos `backend`/`frontend`
+limpios y con remoto, 15 tests backend pasando, build de Angular en producción
+sin errores. Se cerraron las brechas de proceso (proyecto registrado en el
+`CLAUDE.md` del workspace, `docs/` versionado en un repo nuevo `fundacionRebuild`,
+esqueleto de `docs/plan-corte.md`) y luego las 2 tablas que quedaban "Pendiente"
+en `consolidado.md`:
+- **`efectivo`**: investigado antes de preguntar — 13.750 filas pero sin
+  movimientos desde 2020-05-22, y el propio legado (`fundacion/tienda/efectivo.php`)
+  ya lee de `efectivorobert`, no de esta tabla. Decisión de Luis: dato histórico
+  muerto, no se migra ni se construye pantalla nueva.
+- **`actores`**: investigado antes de preguntar — catálogo de 1.552 nombres sin
+  ninguna FK real en el esquema, usado solo como autocompletado en el legado
+  (`ahorro.php`). Al implementar, se encontró que **ya existía** un endpoint
+  (`ContabilidadController::getActores`, usado por el módulo Contabilidad) sin
+  tests — se descubrió por un test que fallaba tras crear sin querer un endpoint
+  duplicado. Se reconcilió reutilizando ese endpoint existente (patrón precarga +
+  filtro en cliente, igual que Contabilidad) en vez de duplicar lógica, se le
+  agregó cobertura de tests, y se extendió el mismo autocompletado al módulo
+  Ahorro (`ahorro.ts`/`ahorro.html`), que antes solo sugería residentes.
+  **Lección**: buscar código existente antes de crear uno nuevo — la regla ya
+  estaba en el `CLAUDE.md` del workspace, esta vez costó un endpoint duplicado
+  y un test roto detectarlo a tiempo.
+
 ### Estabilización y Compilación (17 de Mayo, 2026)
 Se realizó una auditoría completa del estado de compilación del sistema, resolviendo múltiples inconsistencias técnicas en el Frontend que impedían la generación del bundle de producción (`npm run build` fallaba):
 1. **Rutas e Importaciones**: Se corrigió la importación del componente de login en `app.routes.ts` para que apunte correctamente a la clase `Login` exportada por `login.ts` (unificando el criterio con los demás componentes autoportantes).

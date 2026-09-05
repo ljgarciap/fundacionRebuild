@@ -38,9 +38,12 @@ sin planteárselo a Luis explícitamente, implica migrar historial y remotos.
 código (no solo contra lo que decían los `.md`) — repos backend/frontend
 limpios y con remoto, 15 tests backend pasan, build de Angular en producción
 compila sin errores. Gaps encontrados: cobertura de tests desbalanceada (nada
-sobre el proceso de Ingreso, el más crítico), tablas `actores` y `efectivo`
-sin resolver, y ausencia total de plan de corte/staging/CI-CD hasta esta
-fecha. Detalle completo en el historial de la sesión de esa fecha.
+sobre el proceso de Ingreso, el más crítico), y ausencia total de plan de
+corte/staging/CI-CD hasta esta fecha (ver `docs/plan-corte.md`). Las 50 tablas
+del legado ya están resueltas — `actores` y `efectivo`, las 2 que quedaban
+"Pendiente", se cerraron el mismo día (ver `docs/memory.md` y
+`docs/consolidado.md`). Detalle completo en el historial de la sesión de esa
+fecha.
 
 ## Reglas específicas de este proyecto (además de las globales del workspace)
 - **Nunca alterar el esquema de las tablas legadas** (agregar columnas está

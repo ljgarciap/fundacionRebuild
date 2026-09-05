@@ -12,7 +12,7 @@ A continuación se detalla la matriz de mapeo que asocia cada una de las 50 tabl
 |---|---|---|---|---|
 | **1** | `abonopensiones` | **Consolidado** | `App\Models\AbonoPension` | Registro de cargos mensuales y abonos de pensiones. |
 | **1a** | `abonouniformes` | **Consolidado** | `App\Models\AbonoUniforme` | Abonos/pagos recibidos por dotación de uniformes. |
-| **2** | `actores` | **Pendiente** | `App\Models\Actor` | Terceros (empleados, colaboradores) vinculados a Ahorros. |
+| **2** | `actores` | **Consolidado** | `App\Http\Controllers\Api\ContabilidadController::getActores` | Catálogo de solo lectura (1.552 nombres de terceros) — nunca fue una entidad relacional (ninguna otra tabla tiene FK `idactores`), su único uso real es alimentar el autocompletado de "detalle" en Contabilidad y, desde 2026-09-05, también en Ahorro. Sin CRUD propio a propósito. |
 | **3** | `agenda` | **Consolidado** | `App\Models\Agenda` | Programación de citas y control de asistencia médica/psicológica. |
 | **4** | `ahorro` | **Consolidado** | `App\Models\Ahorro` | Cuenta de ahorros general e histórica de la fundación. |
 | **5** | `asientos` | **Consolidado** | `App\Models\Asiento` | Libro diario de contabilidad general (Caja/Bancos) — tabla maestra de fechas y conceptos para `roca`, `jorec` y `diezmos`. |
@@ -31,7 +31,7 @@ A continuación se detalla la matriz de mapeo que asocia cada una de las 50 tabl
 | **17** | `detallepedido` | **Consolidado** | `App\Models\DetallePedido` | Detalle de productos de facturas de compras a proveedores. |
 | **18** | `detalleventa` | **Consolidado** | `DB::table('detalleventa')` | Detalle de ítems vendidos a residentes en el POS de la Tienda. |
 | **19** | `diezmos` | **Consolidado** | `App\Models\Diezmo` | Libro contable de diezmos: ingresos/egresos del fondo espiritual con recálculo en cascada. |
-| **20** | `efectivo` | **Pendiente** | *Por Definir* | Caja general en efectivo de la fundación. |
+| **20** | `efectivo` | **Consolidado (histórico)** | *Sin modelo — no se expone por API* | Libro de caja con 13.750 filas pero **sin movimientos desde 2020-05-22**; el propio legado (`fundacion/tienda/efectivo.php`) ya consulta `efectivorobert`, no esta tabla. Decisión 2026-09-05: dato histórico muerto, no se migra ni se construye pantalla nueva. |
 | **21** | `efectivorobert` | **Consolidado** | `App\Models\EfectivoRobert` | Registro de caja menor/efectivo administrado por Robert. |
 | **22** | `externa` | **Consolidado** | `App\Models\Externa` | Libro contable para fondos externos o extraordinarios. |
 | **23** | `familias` | **Soporte** | *Query Builder Directo* | Familiares y contactos de emergencia del residente. |
