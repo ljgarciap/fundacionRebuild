@@ -140,8 +140,53 @@ diferencia del caso de Tienda, no hay ninguna mención en `consolidado.md` de
 que esa validación debería existir, así que no se asumió una regla de
 negocio nueva sin confirmar con Luis primero.
 
-Sigue pendiente (sin tocar todavía): Agenda, Bitacora, Concepto, Formatos,
-Minuta, Permiso, Practicante, Reporte, Seguimiento, System, Terapia, User.
+### Cierre de la ronda de QA formal: 24/24 controllers, 6 bugs reales en total (5 de Septiembre, 2026, madrugada)
+Continuación y cierre de la ronda de QA formal de `plan-corte.md` § 3.
+147 tests nuevos, 153/153 pasan en la suite completa. 3 bugs más
+encontrados y corregidos en este tramo (Agenda x2, Reporte x1), sumando
+**6 en total** en toda la ronda — todos con el mismo patrón de fondo:
+código escrito contra una columna/relación que nunca existió en el
+esquema real, invisible hasta correr un test contra el schema correcto
+(SQLite no valida columnas inexistentes en un WHERE de la misma forma
+que MySQL, así que varios de estos quedaban enmascarados incluso
+escribiendo tests, hasta construir el schema del test fiel al dump):
+
+4. **`agenda.encargado` no existe.** Ni en el esquema legado ni en
+   ninguna migración posterior — `POST /api/agenda` y el filtro
+   `?encargado=` tiran "Unknown column" siempre. Se agregó la migración
+   `2026_09_05_230000_add_encargado_to_agenda_table.php` (agregar
+   columnas a tablas legadas está permitido por `CLAUDE.md`).
+5. **`Agenda` sin relación `residente()`.** `AgendaController::index()`
+   hace `Agenda::with('residente')` incondicionalmente — `GET /api/agenda`
+   crashea siempre, con o sin filtros, con `RelationNotFoundException`.
+   Se agregó la relación.
+6. **`ReporteController::inventory()` con columnas inventadas.**
+   Seleccionaba `nombre`/`stock`/`precio` de `productos` — ninguna existe
+   (reales: `detalle`/`valorcompra`/`valorventa`, `stock` es calculado).
+   Mismo patrón exacto que el bug de `TiendaController::storeSale`
+   encontrado antes en la misma ronda. Se corrigió reusando el cálculo
+   de stock ya existente en `TiendaController::inventory()`.
+
+Dos endpoints quedan sin test unitario por una limitación real de
+motor, no por falta de cobertura: `SystemController::getStatus()`
+(`SUBSTRING_INDEX(GROUP_CONCAT(...))`) e `incomeByMonth()`/la porción
+"por_mes" de `seguimientosPsicologia()` (`DATE_FORMAT`) usan sintaxis
+específica de MySQL que SQLite no soporta — documentado en
+`SystemTest.php`/`ReporteTest.php`, pendiente de validación manual
+contra MySQL real cuando exista el ambiente de staging.
+
+También se encontró (`BitacoraController`) un comportamiento real no
+obvio, no un bug: cada request a `/api/bitacora` se audita a sí misma
+vía `ApiBitacoraMiddleware` (aplicado globalmente a toda la API) — un
+test que hace 2 llamadas seguidas al mismo endpoint dentro del mismo
+método ve contaminada la segunda por el log de la primera. Los tests
+de `BitacoraTest.php` filtran por criterios que esa auto-auditoría
+nunca produce, en vez de contar filas totales.
+
+Con esto, `plan-corte.md` § 3 queda completo salvo 3 ítems que ya no
+son responsabilidad de esta ronda: staging con copia fresca de la base
+real, backup manual pre-corte, y fecha/horario de la ventana — los tres
+dependen de acción/decisión de Luis, no de más trabajo de QA.
 
 ### Fix real del bloqueo de "modo autónomo" en este proyecto (5 de Septiembre, 2026, noche)
 Incidente largo en medio de la ronda de QA: "modo autónomo" (mecanismo

@@ -66,31 +66,34 @@ no necesitar coexistencia entre sistemas.
       este paso es más crítico que antes: no hay módulos escalonados que
       absorban sorpresas, así que la última validación tiene que verse contra
       datos reales y actuales, no contra el dump histórico.
-- [ ] Ronda de QA formal contra los criterios de aceptación de cada proceso
-      migrado (no solo verificación técnica de que compila/corre) — con Big
-      Bang, esta ronda cubre **todos** los módulos antes del corte, no puede
-      quedar ninguno para "después" como sí permitía corte por módulo.
-      **Progreso** (empezado 2026-09-05, orden de riesgo: dinero real primero):
-      - [x] Ingreso (`IngresoTest.php`)
-      - [x] Pago/Pensiones (`PagoTest.php`, `ChargePensionsTest.php`) — **2
-            bugs reales encontrados y corregidos**, ver `docs/memory.md`.
-      - [x] Tienda/POS (`TiendaTest.php`) — 1 bug real encontrado y corregido.
-      - [x] Ahorro (`AhorroTest.php`) — 1 observación abierta (no es bug, ver
-            `docs/memory.md`): `salida` no valida contra el acumulado
-            disponible, permite dejarlo en negativo. A confirmar con Luis si
-            es comportamiento deseado antes del corte.
-      - [x] Almuerzo (`AlmuerzoTest.php`) — sin bugs.
-      - [x] Auth (`AuthTest.php`) — endpoint de login/logout, sin bugs
-            (el mecanismo MD5→Bcrypt ya se había verificado antes).
-      - [x] Residente (`ResidenteTest.php`) — **bug real encontrado y
-            corregido**: `history()` (`GET /api/residentes/{id}/history`)
-            filtraba `abonopensiones` por una columna `idresidentes` que no
-            existe en esa tabla — crashea en MySQL real cada vez que se pide
-            el historial consolidado de un residente. SQLite (tests) lo
-            enmascaraba silenciosamente. Ver `docs/memory.md`.
-      - [ ] Agenda, Bitacora, Concepto, Formatos, Minuta, Permiso,
-            Practicante, Reporte, Seguimiento, System, Terapia, User — sin
-            tocar todavía.
+- [x] **Ronda de QA formal — completa, 24/24 controllers** (empezado y
+      cerrado el 2026-09-05, orden de riesgo: dinero real primero). 147
+      tests nuevos en total, 153/153 pasan en la suite completa.
+      **6 bugs reales encontrados y corregidos** (todos crasheaban en MySQL
+      real, enmascarados por SQLite en los tests hasta escribirlos contra el
+      schema correcto — ver detalle completo en `docs/memory.md`):
+      1. `pensions:charge` (cron diario) — relación `residente()` faltante
+         en `CobroPension`.
+      2. `TiendaController::storeSale` — sin validación de stock.
+      3. `ResidenteController::history()` — columna inexistente en
+         `abonopensiones`.
+      4. `agenda.encargado` — columna nunca migrada.
+      5. `AgendaController::index()` — relación `residente()` faltante en
+         `Agenda`.
+      6. `ReporteController::inventory()` — columnas inexistentes en
+         `productos` (mismo patrón que el bug de Tienda).
+      Módulos sin bugs (solo cobertura agregada): Ingreso, Ahorro,
+      Almuerzo, Auth, Minuta, Permiso, Seguimiento, Terapia, Practicante,
+      Concepto, Bitacora, User, System, Formatos, Reporte.
+      **Excepciones documentadas, no bugs**: `SystemController::getStatus()`
+      e `incomeByMonth()`/parte de `seguimientosPsicologia()` usan sintaxis
+      SQL específica de MySQL (`SUBSTRING_INDEX`, `DATE_FORMAT`) que SQLite
+      no soporta — sin test unitario por incompatibilidad de motor, pendiente
+      de validar a mano contra MySQL real en staging (ver ítem siguiente).
+      **Observación abierta** (Ahorro, no es bug): `salida` no valida contra
+      el acumulado disponible — a confirmar con Luis si es deseado.
+      **Pendiente fuera de esta ronda**: biometría en Ingreso (firma/huella)
+      no tiene test dedicado.
 - [ ] Backup manual explícito de la base real, tomado justo antes de la
       ventana de corte (ver § 1 — no hay backups automáticos).
 - [ ] Fecha/horario de la ventana de corte (a definir con Luis).
