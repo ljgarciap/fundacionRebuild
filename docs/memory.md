@@ -434,6 +434,42 @@ hasta que llegue ese dump — mientras tanto se sigue con el resto de
 módulos que sí viven en `ingreso/` (ya apuntado a local): Ahorro,
 Diezmos, Contabilidad, Psicología, Terapias, Agenda, Minuta, Permisos.
 
+### Ahorro: segundo bug crítico — el acumulado rompía la cronología (6 de Septiembre, 2026)
+Comparando `ahorro.php`/`ahorrosmovimiento.php` (legado) contra
+`AhorroController` (nuevo), la lógica del 10% de diezmo automático
+coincidía exacto — pero se notó que el legado, tras cada inserción,
+**recalcula en cascada todo el libro** (`ahorrosmovimiento.php` recorre
+`asientosahorro` + `ahorro` completo ordenado por fecha y reescribe el
+`acumulado` de cada fila), mientras `AhorroController::store()` solo
+tomaba el acumulado del **último registro insertado**
+(`orderBy('idahorro', 'desc')`), no el último por **fecha**.
+
+Reproducido en vivo contra el backend real: se insertó un movimiento
+día 1 (100.000), día 3 (150.000 acumulado), y después uno **atrasado**
+con fecha día 2 (20.000) — el sistema le puso acumulado 460.692 al día 2
+y dejó el día 3 en 440.692, **más bajo** que un día anterior. El libro
+contable dejaba de ser cronológicamente consistente ante cualquier carga
+fuera de orden (una corrección tardía, un movimiento omitido que se
+carga después) — un escenario realista, no de laboratorio.
+
+Fix: mismo patrón de recálculo en cascada ya usado en
+`AlmuerzoController`/`DiezmoController`/`ContabilidadController` (ubicar
+el acumulado base justo antes de la nueva fecha, insertar, y recalcular
+en cascada solo los movimientos posteriores) — se corrigió también
+`index()`'s `saldo_actual`, que tenía el mismo problema de fondo
+(ordenaba por `idahorro` en vez de por fecha). Verificado en vivo tras
+el fix: la misma secuencia queda cronológicamente consistente
+(390.692 → 410.692 → 460.692). Test de regresión agregado, 154/154
+tests pasan.
+
+**Patrón que se repite**: van 2 de 2 módulos financieros con hallazgos
+reales en esta comparación en vivo (Ingreso, Ahorro) — ninguno lo había
+detectado la ronda de QA de backend, porque los tests existentes solo
+ejercitaban fechas en orden ascendente, nunca un caso fuera de orden.
+Pendiente: revisar si Diezmos/Contabilidad/Uniformes/Compras (que ya
+tienen cascada) manejan bien este mismo escenario de fecha atrasada, o
+si comparten alguna variante del mismo problema.
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad

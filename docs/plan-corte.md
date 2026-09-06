@@ -134,10 +134,17 @@ no necesitar coexistencia entre sistemas.
         residentes reales (mismo cálculo de saldo, mismos valores,
         incluidos casos de saldo negativo) y un abono real registrado por
         la UI nueva y releído desde el legado con el mismo resultado.
+      - **Ahorro**: **bug crítico encontrado y corregido** — el acumulado
+        se calculaba sobre el último registro insertado, no el último por
+        fecha; un movimiento con fecha atrasada rompía la cronología del
+        libro contable (acumulado dejaba de ser monótono). Corregido con
+        el mismo patrón de cascada ya usado en Almuerzo/Diezmo/Contabilidad.
+        Verificado en vivo, test de regresión agregado.
       - **Pendiente**: repetir este mismo ejercicio (legado vivo + sistema
         nuevo vivo + Playwright) para el resto de los módulos críticos —
         es la única metodología que demostró atrapar bugs reales de este
-        tipo (los backend tests solos no bastan, ver caso de Ingreso).
+        tipo (los backend tests solos no bastan; van 2 de 2 módulos
+        financieros con hallazgos reales, Ingreso y Ahorro).
 - [ ] **BLOQUEANTE POTENCIAL, esperando a Luis — Tienda/POS puede estar
       construido sobre datos históricos muertos.** `venta`/`detalleventa`
       en la base importada (`u727327027_fjemr`) no tienen actividad desde
