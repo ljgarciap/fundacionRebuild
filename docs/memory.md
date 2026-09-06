@@ -395,6 +395,45 @@ sistema nuevo vivo + Playwright, no solo lectura de código) para el resto
 de los módulos críticos — la única forma que demostró atrapar bugs reales
 esta sesión.
 
+### Tienda: hallazgo grande, pausado a la espera de un dump (6 de Septiembre, 2026)
+Al intentar extender la comparación en vivo a Tienda/POS se encontró que
+`tienda/bas/conn.php`, `tienda/bas/conx.php`, `tiendajemr/bas/conn.php`,
+`tiendajemr/bas/conx.php` y `negocio/bas/conn.php` **siguen apuntando al
+hosting real de producción** (`srv1107.hstgr.io`) — a diferencia de
+`ingreso/bas/conn.php`, que en algún momento alguien adaptó a `127.0.0.1`
+local. Ningún dato se tocó (el intento de conexión dio timeout de red, sin
+llegar a autenticar ni consultar nada).
+
+Más importante: `tienda/`/`tiendajemr/` usan **2 conexiones separadas** —
+`$con` (la base `u727327027_fjemr`, la que ya tenemos dumpeada e
+importada) y **`$conx`, apuntando a una base completamente distinta,
+`u727327027_tienda`**, nunca dumpeada ni examinada hasta ahora. El punto
+de venta real (`crearpc.php`, registrar una venta; el dropdown de
+productos) usa `$con` — pero `crearprod.php` (dar de alta un producto
+nuevo) y varias páginas de proveedores/pedidos usan `$conx`.
+
+Dato duro que motivó la pregunta a Luis: la tabla `venta` en la base que
+tenemos (`fundacion`, importada de `u727327027_fjemr.sql`) **no tiene
+ninguna fila posterior al 25 de enero de 2020** (9.429 filas totales).
+Luis confirmó que la Tienda **sigue operando activamente hoy** — lo cual,
+cruzado con esa fecha de corte, es una señal fuerte de que las ventas
+reales de los últimos ~6 años no están yendo a esta base en absoluto,
+sino probablemente a `u727327027_tienda` vía `$conx`. Mismo patrón que
+`efectivo` (tabla con actividad muerta desde una fecha, el legado ya
+usando otra tabla/base en su lugar) pero acá afecta a un módulo que
+`consolidado.md` da por "Consolidado" y que Luis confirma vigente — si
+se confirma, significaría que el POS de Tienda migrado (`TiendaController`,
+`productos`/`venta`/`detalleventa` del sistema nuevo) está construido
+sobre un snapshot histórico muerto, desconectado de la operación real
+actual, no sobre la fuente de verdad vigente.
+
+**Acción pendiente de Luis**: exportar un dump de `u727327027_tienda` del
+mismo panel de Hostinger de donde salió `u727327027_fjemr.sql`, para
+importarlo igual y comparar de verdad contra la operación real. Pausado
+hasta que llegue ese dump — mientras tanto se sigue con el resto de
+módulos que sí viven en `ingreso/` (ya apuntado a local): Ahorro,
+Diezmos, Contabilidad, Psicología, Terapias, Agenda, Minuta, Permisos.
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad

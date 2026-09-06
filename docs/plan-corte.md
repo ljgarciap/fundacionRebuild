@@ -138,6 +138,19 @@ no necesitar coexistencia entre sistemas.
         nuevo vivo + Playwright) para el resto de los módulos críticos —
         es la única metodología que demostró atrapar bugs reales de este
         tipo (los backend tests solos no bastan, ver caso de Ingreso).
+- [ ] **BLOQUEANTE POTENCIAL, esperando a Luis — Tienda/POS puede estar
+      construido sobre datos históricos muertos.** `venta`/`detalleventa`
+      en la base importada (`u727327027_fjemr`) no tienen actividad desde
+      el 25-ene-2020, pero Luis confirma que la Tienda sigue operando hoy
+      — el legado usa una **segunda base separada** (`u727327027_tienda`,
+      vía `$conx` en `tienda/bas/conx.php`) para páginas de
+      productos/proveedores, nunca dumpeada. Si la operación real de
+      Tienda vive ahí, `TiendaController`/`productos`/`venta`/
+      `detalleventa` del sistema nuevo estarían desconectados de la
+      fuente de verdad actual — mismo patrón que `efectivo`, pero en un
+      módulo vigente, no histórico. **Acción de Luis**: exportar dump de
+      `u727327027_tienda` del mismo panel de Hostinger. Ver `docs/memory.md`
+      para el detalle completo. Pausado hasta que llegue el dump.
 - [ ] Backup manual explícito de la base real, tomado justo antes de la
       ventana de corte (ver § 1 — no hay backups automáticos).
 - [ ] Fecha/horario de la ventana de corte (a definir con Luis).
