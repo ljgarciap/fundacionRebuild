@@ -324,6 +324,53 @@ Con esto, `plan-corte.md` § 3 no tiene ningún ítem técnico abierto — queda
 únicamente los 2 que dependen de acción/decisión de Luis (backup pre-corte,
 fecha de la ventana).
 
+### Comparación en vivo legado vs. sistema nuevo: Ingreso estaba roto de punta a punta (6 de Septiembre, 2026)
+Luis preguntó si el sistema nuevo realmente cubre todo lo del legado —
+pregunta correcta: `consolidado.md` mapea tablas contra modelos, no
+garantiza que cada pantalla se comporte igual ni que funcione de verdad
+contra la UI real. Pidió empezar por **Pensiones e Ingreso**, los módulos
+con más reclamos reales reportados.
+
+**Ambiente**: se levantó el PHP legado localmente (`php -S` con
+`-d mysqli.default_port=3307` para apuntar al mismo Docker MySQL ya
+importado, sin tocar ningún archivo del legado) junto al sistema nuevo
+(backend :8010, frontend :4200), y se comparó con Playwright usando la
+misma cuenta admin en ambos (se actualizó `validacion.password` — MD5
+legado — al mismo valor que ya tenía `usuarios.password` en Bcrypt, solo
+en esta base de prueba local).
+
+**Ingreso — bug crítico encontrado y corregido**: el formulario nuevo
+(wizard de 4 pasos) cubre y hasta *supera* al legado en campos capturados
+(agrega estado de salud/vacunas/alergias que el legado no pedía en esta
+pantalla) — buena señal. Pero al enviar un Ingreso real de punta a punta
+por la UI, `POST /api/ingresos` devolvía **500** siempre:
+`SQLSTATE[42S22]: Column not found: 'tipo_sanguineo'`. El campo "Tipo de
+Sangre/RH" (obligatorio en el paso 1) ya estaba en `Residente::$fillable`,
+pero nunca existió una migración que agregara la columna a la tabla legada
+real. **El proceso más crítico de todo el sistema estuvo roto de punta a
+punta**, sin que ningún test lo detectara — `IngresoTest.php` arma su
+payload a mano y nunca incluyó ese campo, el mismo hueco replicado sin
+querer en el test. Fix: migración `add_tipo_sanguineo_to_residentes_table`
++ actualización de `IngresoTest.php` (payload y schema del test) para que
+una regresión futura sí quede atrapada por la suite rápida.
+
+Verificado tras el fix: `POST /api/ingresos` → 200, residente real creado
+(id 810), con las 8 tablas relacionadas pobladas atómicamente
+(`residentes`, `historial`, `historiali`, `historialm`, `cobrospension`,
+`uniformes`, `asociacion`, `actores`) — confirmado por consulta directa a
+la base de datos real, no solo por la respuesta HTTP.
+
+**Lección de fondo, la razón de por qué esto importa más que los bugs de
+antes**: los 6 bugs de backend y los 2 de frontend encontrados en las
+rondas anteriores salieron de tests/código escritos por el mismo agente
+que después los "verificaba" — un punto ciego real, no hipotético, quedó
+demostrado acá: mi propio `IngresoTest.php`, pese a 6 casos y 100% verde,
+nunca ejercitó el payload que el formulario real de verdad envía. Solo
+correr la app de verdad, con Playwright, contra el formulario real, contra
+el backend real, atrapó esto. Pendiente: repetir el mismo ejercicio para
+**Pensiones** (el otro módulo señalado por Luis) y, con el tiempo, para el
+resto de los módulos críticos.
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad
