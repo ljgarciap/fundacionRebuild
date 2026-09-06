@@ -213,6 +213,77 @@ por proyecto), que bloquea a cualquier agente editando infraestructura de
 permisos en cualquier proyecto, en cualquier máquina. No es un bug de este
 proyecto ni tiene fix posible — es intencional.
 
+### Validación manual Angular ↔ backend contra datos reales: 1 bug real de severidad alta (6 de Septiembre, 2026)
+Luis pidió parar de asumir "cubierto y funcional" solo por la ronda de QA de
+backend (ver entrada anterior) y validar de verdad con Angular corriendo
+contra el backend local — la pregunta correcta, dado que toda la ronda
+anterior nunca había tocado el frontend ni datos reales.
+
+**Ambiente levantado desde cero** (no existía nada montado):
+- Contenedor Docker **dedicado** `fundacion_db` (MySQL 8, puerto **3307**) —
+  el puerto 3306 estándar ya estaba ocupado por `factoring_db` (Proseguir),
+  otro proyecto corriendo en la misma máquina. Se optó por no tocar ese
+  contenedor ajeno.
+- Dump legado real importado ahí (`fundacion/u727327027_fjemr.sql`, 17MB):
+  **742 residentes, 777 usuarios reales**, 52 tablas.
+- `php artisan migrate` corrió limpio sobre ese esquema real — confirma que
+  todas las migraciones de esta sesión (incluida `add_encargado_to_agenda`
+  de hoy) aplican bien contra datos de producción, no solo contra el
+  schema sintético de los tests.
+- Backend (`php artisan serve`) en **puerto 8010** — el 8000 estándar
+  también estaba ocupado, esta vez por `factoring_backend_web` (Docker,
+  nginx). Un `curl` a `localhost:8000/api/login` devolvía una respuesta con
+  campos de OTRO proyecto (`numero_documento`) antes de notar el conflicto.
+- Frontend (`ng serve`) en puerto 4200, `environment.ts` apuntado
+  temporalmente al backend real durante la prueba (revertido a 8000 antes
+  de commitear — el puerto 8010 es un workaround de esta máquina, no algo
+  para fijar en el repo).
+- Playwright instalado como devDependency real del frontend (antes no
+  existía) — regla dura del workspace: toda validación visual/funcional en
+  navegador va por Playwright CLI, nunca por la extensión Claude in Chrome
+  (desinstalada). Queda disponible para próximas validaciones.
+
+**Bug real encontrado, severidad alta** (no lo hubiera atrapado ninguna
+ronda de tests de backend — es puramente de frontend): `Api.handleApiError()`
+redirigía la página completa (`window.location.href = '/login'`, borrando
+`localStorage`) ante **cualquier** 401 — incluido el 401 normal de un login
+con contraseña incorrecta. Un usuario real escribiendo mal su clave nunca
+veía "Credenciales inválidas": la pantalla se recargaba en blanco antes de
+que el mensaje llegara a mostrarse. Confirmado paso a paso con Playwright
+(estado interno del componente Angular vía `window.ng.getComponent`, no solo
+capturas): campos y `error` se reseteaban a vacío porque el login entero se
+recargaba desde cero. Fix: el redirect por sesión expirada ahora solo
+dispara si ya había un token guardado (`localStorage.getItem('token')`) —
+un intento de login fallido nunca tiene token todavía, así que deja de
+disparar el redirect y el mensaje de error se muestra normal. Verificado
+visualmente tras el fix: banner "⚠️ Credenciales inválidas" visible, campos
+conservan lo escrito, botón vuelve a habilitarse.
+
+Se aprovechó para agregar también `ChangeDetectorRef.detectChanges()` en
+`Login.onLogin()` (no era la causa raíz de este bug puntual, pero cerraba
+el mismo gap que el resto de la app ya resolvió — ver sesión 18-May más
+arriba). Al revisar esto se encontró un **hallazgo más amplio, sin corregir
+esta sesión**: de 24 componentes que usan `HttpClient.subscribe()`, solo 7
+ya inyectan `ChangeDetectorRef`, pese a que `memory.md` documenta esto como
+patrón obligatorio bajo `provideZonelessChangeDetection()` desde mayo.
+Quedan **17 componentes con el mismo riesgo potencial** (estado que no se
+refleja en pantalla tras una respuesta async) — no se tocaron a ciegas,
+queda como ítem propio en `plan-corte.md` § 3 para una auditoría dedicada.
+
+Después de esto, con login real funcionando de punta a punta contra datos
+reales (63 residentes activos visibles en el dashboard, nombres/documentos
+reales, paginación correcta), el build de producción de Angular (`ng build
+--configuration production`) sigue compilando limpio — solo warnings
+preexistentes sin relación (presupuesto de CSS de terapias, `sweetalert2`
+no-ESM).
+
+**Conclusión honesta para Luis** (ver también la respuesta dada en el chat):
+esto NO significa "refactoring cubierto y funcional" en el sentido de listo
+para producción — significa que el camino de login, antes roto en silencio,
+ahora funciona de verdad, y que hay una categoría entera de bugs de frontend
+(estado que no se actualiza bajo zoneless CD) todavía sin auditar en 17
+componentes más.
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad

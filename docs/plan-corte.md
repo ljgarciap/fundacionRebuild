@@ -95,9 +95,26 @@ no necesitar coexistencia entre sistemas.
       comportamiento intencional.
       **Pendiente fuera de esta ronda**: biometría en Ingreso (firma/huella)
       no tiene test dedicado.
+- [x] **Validación manual Angular ↔ backend local, contra base de datos real**
+      (2026-09-06) — ver `docs/memory.md` para el detalle completo del
+      ambiente (Docker MySQL dedicado en :3307, dump real de 742 residentes/
+      777 usuarios importado, backend en :8010, frontend en :4200, validado
+      con Playwright CLI). **1 bug real de severidad alta encontrado y
+      corregido**: `Api.handleApiError()` (frontend) redirigía la página
+      completa ante cualquier 401, incluido el del propio login fallido —
+      un usuario real nunca veía "Credenciales inválidas", solo la pantalla
+      recargándose en blanco. **Hallazgo más amplio, sin corregir, para
+      auditoría aparte**: 17 de 24 componentes que usan `.subscribe()` no
+      inyectan `ChangeDetectorRef` pese a que es patrón obligatorio bajo
+      `provideZonelessChangeDetection()` (ya documentado en `memory.md`,
+      sesión 18-May) — riesgo de estado que no se refleja en pantalla tras
+      una respuesta async, en cualquiera de esos 17.
 - [ ] Backup manual explícito de la base real, tomado justo antes de la
       ventana de corte (ver § 1 — no hay backups automáticos).
 - [ ] Fecha/horario de la ventana de corte (a definir con Luis).
+- [ ] **Auditoría de `ChangeDetectorRef` faltante** en los 17 componentes
+      señalados arriba — no se tocó esta sesión, requiere revisar cada uno
+      antes de asumir que están bien.
 
 ## 4. Plan de rollback — **decidido** (Luis, daily 2026-09-05)
 - [x] **Ventana de solo-lectura**: el legado se mantiene disponible en modo
