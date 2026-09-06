@@ -109,12 +109,20 @@ no necesitar coexistencia entre sistemas.
       `provideZonelessChangeDetection()` (ya documentado en `memory.md`,
       sesión 18-May) — riesgo de estado que no se refleja en pantalla tras
       una respuesta async, en cualquiera de esos 17.
+- [x] **Auditoría de `ChangeDetectorRef` faltante — completa** (2026-09-06,
+      ver `docs/memory.md`). De los 24 componentes que usan `.subscribe()`,
+      los 16 que no inyectaban `ChangeDetectorRef` ahora lo hacen (login.ts
+      ya se había corregido antes). **2 bugs reales confirmados en vivo con
+      Playwright** durante el audit — mismo patrón que el bug de login:
+      `usuarios.ts` (error de "documento ya existe" al crear/editar un
+      usuario nunca se mostraba al administrador) y `conceptos.ts` (error
+      409 de "concepto en uso, no se puede eliminar" tampoco se mostraba).
+      El resto de los 16 recibió el mismo fix preventivo por patrón de
+      código, sin confirmación individual con Playwright de cada uno.
+      Build de producción de Angular limpio tras el fix.
 - [ ] Backup manual explícito de la base real, tomado justo antes de la
       ventana de corte (ver § 1 — no hay backups automáticos).
 - [ ] Fecha/horario de la ventana de corte (a definir con Luis).
-- [ ] **Auditoría de `ChangeDetectorRef` faltante** en los 17 componentes
-      señalados arriba — no se tocó esta sesión, requiere revisar cada uno
-      antes de asumir que están bien.
 
 ## 4. Plan de rollback — **decidido** (Luis, daily 2026-09-05)
 - [x] **Ventana de solo-lectura**: el legado se mantiene disponible en modo

@@ -284,6 +284,46 @@ ahora funciona de verdad, y que hay una categoría entera de bugs de frontend
 (estado que no se actualiza bajo zoneless CD) todavía sin auditar en 17
 componentes más.
 
+### Auditoría de ChangeDetectorRef completa: 2 bugs reales más confirmados (6 de Septiembre, 2026)
+Cierre del hallazgo anterior. Se agregó `ChangeDetectorRef` + `detectChanges()`
+a los 16 componentes que no lo tenían (`agenda`, `ahorro`, `almuerzos`,
+`biometricos`, `bitacora`, `compras`, `compras-detalle`, `conceptos`,
+`diezmos`, `minuta`, `permisos`, `practicantes`, `psicologia`, `tienda`,
+`uniformes`, `usuarios`) — mismo patrón en los 24: `cdr.detectChanges()`
+después de cualquier mutación de estado dentro de un callback `next`/`error`
+de `.subscribe()` que se refleja en el template.
+
+Se verificaron en vivo con Playwright (login real + navegación real contra
+el backend/base de datos reales del ambiente levantado antes) 2 de los 16,
+ambos con el **mismo bug exacto** que ya se había encontrado en login —
+confirma que la sospecha no era teórica:
+- **`usuarios.ts` (`saveUser`)**: crear o editar un usuario con un
+  `documento` que ya existe devuelve 422 del backend
+  ("The documento has already been taken.") — antes del fix, ese mensaje
+  nunca llegaba a mostrarse al administrador, quedaba solo en el estado
+  interno del componente. Confirmado con `window.ng.getComponent()`: antes
+  `error` se seteaba pero el DOM no lo reflejaba; después, el banner
+  "⚠️The documento has already been taken." aparece de verdad. De paso se
+  corrigió el `setTimeout()` que auto-cierra el modal al guardar con éxito
+  — tampoco disparaba CD, mismo problema de fondo.
+- **`conceptos.ts` (`doDelete`)**: intentar eliminar un concepto contable
+  con asientos asociados devuelve 409 (`ConceptoController::destroy`,
+  protección ya cubierta por `ConceptoTest.php` en el backend) — el mensaje
+  de "no se puede eliminar" tampoco se mostraba nunca en el frontend antes
+  de este fix.
+
+Los otros 14 componentes recibieron el mismo fix preventivo por patrón de
+código (mismo `.subscribe()` sin `ChangeDetectorRef`, mismo riesgo
+estructural) pero no se verificó cada uno individualmente con Playwright —
+sería el siguiente paso natural si aparece evidencia de que alguno todavía
+falla en la práctica. Build de producción de Angular (`ng build
+--configuration production`) sigue limpio tras el fix, mismos 2 warnings
+preexistentes sin relación.
+
+Con esto, `plan-corte.md` § 3 no tiene ningún ítem técnico abierto — quedan
+únicamente los 2 que dependen de acción/decisión de Luis (backup pre-corte,
+fecha de la ventana).
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad
