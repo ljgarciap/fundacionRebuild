@@ -470,6 +470,37 @@ Pendiente: revisar si Diezmos/Contabilidad/Uniformes/Compras (que ya
 tienen cascada) manejan bien este mismo escenario de fecha atrasada, o
 si comparten alguna variante del mismo problema.
 
+### Auditoría de la cascada + smoke test en vivo del resto de módulos de `ingreso/` (6 de Septiembre, 2026)
+Se resolvió la pregunta pendiente de la entrada anterior con una auditoría
+dirigida (no otra ronda completa de Playwright): un grep sobre todos los
+controllers buscando el mismo antipatrón de Ahorro (`orderBy('idX',
+'desc')` como único criterio de orden, sin `fecha` primero) no encontró
+ninguna otra instancia — `DiezmoController` (`cascadeRecalculateRoca/
+Jorec/Diezmo` hace recálculo completo por fecha; `cascadeRecalculateColombia/
+Colpatria/Efectivo` usa el mismo patrón de cascada parcial que se le aplicó
+a Ahorro), `ContabilidadController`, `UniformeController` y `PedidoController`
+ya ordenan por `fecha` antes que por el id en sus bases de acumulado. Ahorro
+era el único que se había quedado afuera de este patrón ya establecido.
+
+Se comparó además, campo por campo, el payload real que cada componente
+Angular envía contra la validación del controller correspondiente
+(mismo tipo de comparación que destapó el bug de `tipo_sanguineo` en
+Ingreso) para **Agenda, Minuta, Permisos, Diezmos, Contabilidad,
+Terapias (cognitiva y espiritual) y Psicología/Seguimiento** — los 7
+coinciden exactos, sin campos faltantes. Se confirmó además con un
+smoke test en vivo contra el backend real (creación de cita, visita,
+permiso, abono de diezmo, movimiento contable, sesión de terapia x2 y
+seguimiento) — **los 7 succeeded sin errores**, datos de prueba
+limpiados después.
+
+**Balance del ciclo de comparación en vivo de esta sesión**: 9 módulos
+recorridos (Ingreso, Pensiones, Ahorro, Agenda, Minuta, Permisos,
+Diezmos, Contabilidad, Terapias, Psicología — 10 en total), **2 bugs
+críticos reales encontrados y corregidos** (Ingreso: columna sin
+migrar; Ahorro: cascada rota con fecha atrasada), **1 módulo pausado**
+esperando un dump de Luis (Tienda, posible base de datos separada sin
+examinar), el resto sin hallazgos. 154/154 tests de backend pasan.
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad

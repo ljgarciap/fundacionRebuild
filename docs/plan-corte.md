@@ -140,11 +140,17 @@ no necesitar coexistencia entre sistemas.
         libro contable (acumulado dejaba de ser monótono). Corregido con
         el mismo patrón de cascada ya usado en Almuerzo/Diezmo/Contabilidad.
         Verificado en vivo, test de regresión agregado.
-      - **Pendiente**: repetir este mismo ejercicio (legado vivo + sistema
-        nuevo vivo + Playwright) para el resto de los módulos críticos —
-        es la única metodología que demostró atrapar bugs reales de este
-        tipo (los backend tests solos no bastan; van 2 de 2 módulos
-        financieros con hallazgos reales, Ingreso y Ahorro).
+      - **Agenda, Minuta, Permisos, Diezmos, Contabilidad, Terapias,
+        Psicología**: sin bugs — auditoría dirigida (mismo antipatrón de
+        cascada que Ahorro: no se encontró en ningún otro controller) +
+        comparación campo por campo del payload real Angular vs backend
+        + smoke test en vivo de los 7 contra el backend real, todos OK.
+      - **Balance del ciclo**: 10 módulos recorridos, **2 bugs críticos
+        reales** (Ingreso, Ahorro), **1 pausado** esperando dump de Luis
+        (Tienda), el resto limpio. Ver `docs/memory.md` para el detalle
+        completo. Metodología validada: los backend tests solos no
+        bastan — ambos bugs críticos solo aparecieron probando contra
+        el payload/comportamiento real, no el sintético de los tests.
 - [ ] **BLOQUEANTE POTENCIAL, esperando a Luis — Tienda/POS puede estar
       construido sobre datos históricos muertos.** `venta`/`detalleventa`
       en la base importada (`u727327027_fjemr`) no tienen actividad desde
