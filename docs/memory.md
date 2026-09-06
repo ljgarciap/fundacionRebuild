@@ -367,9 +367,33 @@ que después los "verificaba" — un punto ciego real, no hipotético, quedó
 demostrado acá: mi propio `IngresoTest.php`, pese a 6 casos y 100% verde,
 nunca ejercitó el payload que el formulario real de verdad envía. Solo
 correr la app de verdad, con Playwright, contra el formulario real, contra
-el backend real, atrapó esto. Pendiente: repetir el mismo ejercicio para
-**Pensiones** (el otro módulo señalado por Luis) y, con el tiempo, para el
-resto de los módulos críticos.
+el backend real, atrapó esto.
+
+**Pensiones — sin bugs, paridad exacta confirmada.** Mismo ejercicio que
+Ingreso, esta vez con resultado limpio. Se comparó la lógica de saldo
+pendiente línea por línea: legado (`pensiones.php`) calcula
+`SUM(valorinicial) - SUM(abono)` por `cobrospension`; el nuevo
+(`PagoController::index` + `pagos.html`) hace exactamente lo mismo
+(`total_cobrado - total_abonado`). Se verificó con **10 residentes reales**
+del dump importado, comparando fila por fila (día de cobro, valor de
+pensión, saldo) entre legado y sistema nuevo — **coincidencia exacta en
+los 10**, incluidos 2 casos de saldo negativo (residentes que pagaron de
+más). También coincide la regla de negocio "Contabilizar/No Contabilizar"
+según `estado` A/E.
+
+Se registró además un abono real de $100.000 sobre un residente real
+(LUIS FERNANDO VALENCIA SANCHEZ, saldo previo $0) a través de la UI nueva
+de punta a punta — `POST /api/pagos/abono` → 200, saldo actualizado a
+-$100.000 en el sistema nuevo, y se releyó el **legado** (mismo Docker
+MySQL, sin recargar nada del lado legado) confirmando el mismo saldo
+-$100.000 — la escritura de un sistema es visible e idéntica en el otro,
+prueba de que ambos leen/escriben sobre el mismo modelo de datos sin
+divergencia.
+
+Pendiente, con el tiempo: repetir este mismo ejercicio (legado vivo +
+sistema nuevo vivo + Playwright, no solo lectura de código) para el resto
+de los módulos críticos — la única forma que demostró atrapar bugs reales
+esta sesión.
 
 ## Módulos Implementados
 

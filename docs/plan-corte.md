@@ -120,6 +120,24 @@ no necesitar coexistencia entre sistemas.
       El resto de los 16 recibió el mismo fix preventivo por patrón de
       código, sin confirmación individual con Playwright de cada uno.
       Build de producción de Angular limpio tras el fix.
+- [x] **Comparación en vivo legado vs. sistema nuevo — Ingreso y Pensiones**
+      (2026-09-06, pedido por Luis: "¿el sistema nuevo cubre todo lo del
+      legado?", empezando por los 2 módulos con más reclamos reales). Ver
+      `docs/memory.md` para el detalle completo.
+      - **Ingreso**: **bug crítico encontrado y corregido** —
+        `POST /api/ingresos` crasheaba SIEMPRE por una columna
+        (`tipo_sanguineo`) nunca migrada. El proceso más crítico del
+        sistema completo estuvo roto de punta a punta sin que ningún test
+        lo detectara. Verificado end-to-end tras el fix: 200 OK, residente
+        real creado con las 8 tablas relacionadas.
+      - **Pensiones**: sin bugs — paridad exacta confirmada contra 10
+        residentes reales (mismo cálculo de saldo, mismos valores,
+        incluidos casos de saldo negativo) y un abono real registrado por
+        la UI nueva y releído desde el legado con el mismo resultado.
+      - **Pendiente**: repetir este mismo ejercicio (legado vivo + sistema
+        nuevo vivo + Playwright) para el resto de los módulos críticos —
+        es la única metodología que demostró atrapar bugs reales de este
+        tipo (los backend tests solos no bastan, ver caso de Ingreso).
 - [ ] Backup manual explícito de la base real, tomado justo antes de la
       ventana de corte (ver § 1 — no hay backups automáticos).
 - [ ] Fecha/horario de la ventana de corte (a definir con Luis).
