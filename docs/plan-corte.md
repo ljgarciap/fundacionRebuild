@@ -90,8 +90,9 @@ no necesitar coexistencia entre sistemas.
       SQL específica de MySQL (`SUBSTRING_INDEX`, `DATE_FORMAT`) que SQLite
       no soporta — sin test unitario por incompatibilidad de motor, pendiente
       de validar a mano contra MySQL real en staging (ver ítem siguiente).
-      **Observación abierta** (Ahorro, no es bug): `salida` no valida contra
-      el acumulado disponible — a confirmar con Luis si es deseado.
+      **Observación cerrada** (Ahorro, no era bug): `salida` no valida contra
+      el acumulado disponible — decisión de Luis (2026-09-06): se deja así,
+      comportamiento intencional.
       **Pendiente fuera de esta ronda**: biometría en Ingreso (firma/huella)
       no tiene test dedicado.
 - [ ] Backup manual explícito de la base real, tomado justo antes de la

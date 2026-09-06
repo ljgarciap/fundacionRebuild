@@ -132,13 +132,15 @@ para atrapar antes del corte, no después:
    carrito — si un solo ítem no tiene stock suficiente, se rechaza la venta
    completa antes de tocar la base) más los tests de regresión.
 
-Queda 1 observación abierta, no corregida a propósito por no tener base
-documental que la respalde (a diferencia de los 2 casos de arriba): en
+Quedó 1 observación, no corregida a propósito por no tener base documental
+que la respalde (a diferencia de los 2 casos de arriba): en
 `AhorroController::store`, una `salida` (retiro) no valida contra el
 acumulado disponible — puede dejar el saldo general en negativo. A
-diferencia del caso de Tienda, no hay ninguna mención en `consolidado.md` de
-que esa validación debería existir, así que no se asumió una regla de
-negocio nueva sin confirmar con Luis primero.
+diferencia del caso de Tienda, no había ninguna mención en `consolidado.md`
+de que esa validación debiera existir, así que no se asumió una regla de
+negocio nueva sin confirmar con Luis primero. **Decisión de Luis
+(2026-09-06): se deja como está, es comportamiento intencional** — cerrado,
+sin cambio de código.
 
 ### Cierre de la ronda de QA formal: 24/24 controllers, 6 bugs reales en total (5 de Septiembre, 2026, madrugada)
 Continuación y cierre de la ronda de QA formal de `plan-corte.md` § 3.
