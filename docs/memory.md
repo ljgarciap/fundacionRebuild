@@ -552,6 +552,45 @@ quedan disponibles localmente (`fundacion/u727327027_tienda.sql`, base
 Docker `tienda` en el mismo contenedor `fundacion_db`) para cuando se
 retome.
 
+### Cierre del ciclo: biometría en Ingreso + últimos módulos en vivo (6-7 de Septiembre, 2026)
+**Biometría en Ingreso**: se confirmó que la tabla `validacion` no tiene
+relación con biometría — el modelo `Validacion` nunca se invoca en ningún
+controller, y el legado tampoco la usa para eso (solo MD5 de login). Se
+corrigió la descripción en `consolidado.md`. La biometría real
+(`residentes.firma_path`/`huella_path`, vía `ResidenteController::
+uploadBiometrics`) ya estaba bien implementada y cubierta por
+`ResidenteTest.php` — pero se encontró un hueco de **flujo real**: la
+pantalla de "Ingreso Exitoso" no ofrecía ningún camino hacia la captura de
+firma/huella, solo "Descargar PDF" e "Ir al Dashboard". Se agregó un botón
+"Capturar Firma/Huella" que navega directo al residente recién creado.
+Verificado end-to-end con Playwright: Ingreso real → click → aterriza en
+`/biometricos/:id` correcto.
+
+**Módulos restantes recorridos en vivo** (smoke test contra el backend
+real, complementando la comparación de código ya hecha): Uniformes
+(57 registros reales, actualización de entrega funciona), Lavandería
+(`cobroslavada` genuinamente vacía — tabla nueva del sistema, sin datos
+legados que migrar), Practicantes (23), Usuarios (779), Residentes
+activos (65) — todos responden correctamente contra datos reales.
+
+**Almuerzos — observación menor, no corregida**: la tabla `cobroalmuerzos`
+tiene 18 filas reales, pero la API devuelve 0 porque las 18 pertenecen a
+residentes ahora `Inactivo` — comportamiento correcto, coincide con el
+legado (`almuerzos.php` filtra igual `estado='A' OR estado='E'`). Se
+encontró sí una diferencia sutil de precedencia SQL en el legado:
+`estado='A' OR estado='E' AND saldo>0` — por precedencia de operadores,
+un residente "Especial" con saldo ya pagado (saldo=0) queda oculto en el
+legado, mientras el sistema nuevo lo seguiría mostrando. Impacto mínimo
+(ningún caso real en los datos actuales), no se corrigió — queda anotado
+por si en el futuro se nota una diferencia real de visualización.
+
+**Balance final del ciclo completo de comparación en vivo** (Ingreso →
+Almuerzos): 16 módulos recorridos, **2 bugs críticos corregidos**
+(Ingreso, Ahorro), **1 hueco de flujo corregido** (biometría sin acceso),
+**1 gap de alcance real descubierto y pausado** (Tienda/Compras, base de
+datos separada), **1 observación menor sin corregir** (Almuerzos,
+precedencia SQL). 154/154 tests de backend pasan.
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad

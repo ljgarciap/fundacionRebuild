@@ -58,8 +58,14 @@ no necesitar coexistencia entre sistemas.
       vía. Transparente para el usuario, cumple la regla del `CLAUDE.md`. Doc
       de `validacion` corregida en `consolidado.md` (describía solo su función
       biométrica, no la de password legacy).
-- [ ] Cobertura de tests de **biometría en Ingreso** (firma/huella, tabla
-      `validacion`) — no incluida en `IngresoTest.php`, sigue pendiente.
+- [x] **Biometría en Ingreso — cerrado (2026-09-06/07)**. La tabla
+      `validacion` no tiene relación con biometría (corregido en
+      `consolidado.md` — el modelo `Validacion` nunca se invoca; la
+      biometría real usa `residentes.firma_path`/`huella_path`, ya cubierta
+      por `ResidenteTest.php`). Hallazgo real en el camino: la pantalla de
+      éxito de Ingreso no ofrecía ningún acceso a la captura de firma/huella
+      — se agregó un botón que navega directo al residente recién creado.
+      Verificado end-to-end con Playwright.
 - [ ] Ambiente de staging con **una copia fresca de la base real del hosting**
       (no el dump original de referencia, que ya tiene 8 años — el legado
       sigue escribiendo hoy, ver § 1) antes del corte. Con Big Bang decidido,
