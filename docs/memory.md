@@ -501,6 +501,57 @@ migrar; Ahorro: cascada rota con fecha atrasada), **1 módulo pausado**
 esperando un dump de Luis (Tienda, posible base de datos separada sin
 examinar), el resto sin hallazgos. 154/154 tests de backend pasan.
 
+### Tienda/Compras: confirmado — corren sobre una base real distinta, pausados por decisión de Luis (6 de Septiembre, 2026, noche)
+Luis consiguió el dump de `u727327027_tienda` (mismo panel de Hostinger,
+22MB, generado 2026-09-06) y lo trajo a `fundacion/u727327027_tienda.sql`.
+Se importó (con un ajuste menor: `ROW_FORMAT=FIXED` no es válido para
+InnoDB en esta versión de MariaDB, se quitó del dump — es solo un hint de
+almacenamiento, no afecta datos ni esquema) como base `tienda` separada en
+el mismo contenedor Docker.
+
+**Confirmado sin ambigüedad**: es un esquema **completo y distinto**, no
+una simple copia con otro nombre —
+
+| Tabla en `u727327027_tienda` | Filas | Actividad | Equivalente en `fjemr` (el que migramos) |
+|---|---|---|---|
+| `facturas` | 75.479 | hasta 2026-09-05 | no existe — reemplaza a `venta` |
+| `detallefactura` | 292.454 | — | no existe — reemplaza a `detalleventa` |
+| `pedidos` | 3.175 | hasta 2026-09-05 | `pedidos` (540 filas, muerto) |
+| `detallepedido` | 10.571 | — | `detallepedido` (1.142 filas, muerto) |
+| `productos` | 225 | — | `productos` (145 filas, esquema distinto) |
+| `mayor` | 75.978 | hasta 2026-09-05 | no existe |
+| `asientos` | 73.177 | hasta 2026-09-05 | tabla homónima en `fjemr`, contenido distinto |
+| `tienda` | 86.934 | **hasta 2026-09-06 (hoy)** | `tienda` (muerta desde antes de 2020) |
+| `pagos` | 2.906 | — | no hay equivalente directo |
+
+La tabla `tienda` (el balance de recargas/cargos del residente, la pieza
+central del módulo POS) tiene movimientos literalmente **de hoy** en esta
+base — mientras que la misma tabla en `fjemr` (la que el sistema nuevo
+migró) no tiene nada después de enero de 2020. Confirma sin lugar a dudas
+que la fundación **nunca dejó de operar la Tienda** (como Luis ya había
+dicho) — lo que pasó es que en algún momento (parece que a inicios de
+2020) la operación real se movió a esta base separada, y nadie lo
+documentó ni lo tuvo en cuenta al migrar.
+
+**Alcance del impacto**: los módulos "Punto de Venta (POS Tienda)" y
+"Abastecimiento de Inventario (Compras y Proveedores)" — ambos marcados
+"Consolidado"/"Migrado" en `consolidado.md` hasta hoy — están construidos
+sobre un snapshot histórico completamente desconectado de la operación
+real. Esto no es un bug puntual como Ingreso o Ahorro: es un **gap de
+alcance real en la migración**, dos módulos enteros que habría que
+re-diseñar contra el esquema correcto (`facturas`/`detallefactura`/`mayor`
+en vez de `venta`/`detalleventa`).
+
+**Decisión de Luis**: pausar Tienda/Compras del todo por ahora, no
+re-mapear todavía — se re-marcaron **"Pendiente (real)"** en
+`consolidado.md` (antes "Consolidado"/"Migrado"), con una nota al inicio
+del documento explicando el hallazgo completo. Cuando haya prioridad para
+encararlo, es un ciclo de trabajo propio (Analista → Arquitecto → PM →
+Backend/Frontend Dev), no un fix rápido de QA. La base `tienda` y el dump
+quedan disponibles localmente (`fundacion/u727327027_tienda.sql`, base
+Docker `tienda` en el mismo contenedor `fundacion_db`) para cuando se
+retome.
+
 ## Módulos Implementados
 
 ### 1. Núcleo Administrativo y Seguridad

@@ -37,13 +37,23 @@ sin planteárselo a Luis explícitamente, implica migrar historial y remotos.
 **Auditoría de retoma (2026-09-05)**: se verificó el estado real contra el
 código (no solo contra lo que decían los `.md`) — repos backend/frontend
 limpios y con remoto, 15 tests backend pasan, build de Angular en producción
-compila sin errores. Gaps encontrados: cobertura de tests desbalanceada (nada
-sobre el proceso de Ingreso, el más crítico), y ausencia total de plan de
-corte/staging/CI-CD hasta esta fecha (ver `docs/plan-corte.md`). Las 50 tablas
-del legado ya están resueltas — `actores` y `efectivo`, las 2 que quedaban
-"Pendiente", se cerraron el mismo día (ver `docs/memory.md` y
-`docs/consolidado.md`). Detalle completo en el historial de la sesión de esa
-fecha.
+compila sin errores. Detalle completo en el historial de esa sesión, ver
+`docs/memory.md`.
+
+**Estado real de cobertura (actualizado 2026-09-06, no confiar en "50/50"
+sin mirar `docs/consolidado.md`)**: tras una ronda de QA formal (147 tests
+nuevos) y una comparación en vivo legado-vs-nuevo módulo por módulo, se
+encontraron y corrigieron **8 bugs reales** (backend, frontend y de
+comportamiento de negocio — ver `docs/memory.md` para el detalle completo
+de cada uno) y se confirmó que **Tienda POS y Compras/Proveedores corren
+en la práctica sobre una base de datos distinta y separada**
+(`u727327027_tienda`, con actividad hasta hoy) — la migrada
+(`u727327027_fjemr`) para esos 2 módulos está desconectada de la operación
+real desde antes de 2020. Esos 2 módulos quedaron re-marcados "Pendiente
+(real)" en `docs/consolidado.md` (antes "Consolidado"/"Migrado"), pausados
+por decisión de Luis hasta encararlos como su propio ciclo de trabajo. El
+mecanismo MD5→Bcrypt (línea de abajo) también quedó confirmado y correcto
+en esa misma ronda.
 
 ## Reglas específicas de este proyecto (además de las globales del workspace)
 - **Nunca alterar el esquema de las tablas legadas** (agregar columnas está
@@ -51,11 +61,14 @@ fecha.
   `residentes` — pero nunca renombrar/eliminar columnas ni tablas existentes
   sin decisión explícita de Luis, para no romper compatibilidad con el legado).
 - Migración de contraseñas MD5 (legado) → Bcrypt (Laravel) debe ser
-  transparente para el usuario final — verificar el mecanismo real en
-  `AuthController` antes de tocar login (no confirmado en la auditoría del
-  2026-09-05, queda como pendiente de revisión de Cybersecurity).
+  transparente para el usuario final — mecanismo verificado y confirmado
+  correcto en `AuthController::login` (2026-09-05): intenta Bcrypt primero,
+  cae a MD5 contra `validacion.password` (ahí vive el hash legacy real) con
+  upgrade silencioso a Bcrypt.
 - Todo cambio que toque una tabla marcada "Pendiente" en `docs/consolidado.md`
   requiere primero decisión de negocio de Luis sobre si ese proceso sigue
-  vigente en la operación real de la fundación (ver `actores`, `efectivo`).
+  vigente en la operación real de la fundación (ver `actores`, `efectivo`,
+  y — desde 2026-09-06 — Tienda POS/Compras, que corren sobre una base
+  separada nunca migrada).
 - `.env` de `backend/` apunta hoy a MySQL local — no hay ambiente de
   staging/producción configurado todavía (ver `docs/plan-corte.md`).

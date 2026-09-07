@@ -2,6 +2,21 @@
 
 Este documento actúa como la **bitácora de control principal** para la modernización del sistema de la **Fundación Rebuild**. Su prioridad absoluta es **garantizar el respeto y la compatibilidad 100% con la base de datos histórica de 8 años de antigüedad** (`u727327027_fjemr.sql`), construyendo la nueva interfaz en Angular 19 y API en Laravel 11 como una capa superior que lee y escribe directamente en el esquema original sin alterarlo.
 
+> ⚠️ **Hallazgo 2026-09-06 — Tienda/Compras corren sobre una base distinta**:
+> la operación real y vigente de Tienda (POS) y Compras/Proveedores vive en
+> una **segunda base de datos separada** (`u727327027_tienda`, esquema
+> propio con `facturas`/`detallefactura`/`mayor`, no `venta`/`detalleventa`),
+> activa hasta hoy (75.479 facturas, 292.454 líneas de detalle, `tienda`
+> con movimientos al 2026-09-06). Las tablas `productos`/`proveedores`/
+> `pedidos`/`detallepedido`/`pagoproveedores`/`tienda`/`venta`/`detalleventa`
+> de `u727327027_fjemr` (las que este documento marcaba "Consolidado" más
+> abajo) están **desconectadas de esa operación real** — sin actividad
+> desde antes de 2020. Los módulos 4 y 9 de la sección 2 de este documento
+> quedan re-marcados **Pendiente (real)** hasta que se rediseñen contra el
+> esquema correcto — decisión explícita de Luis (2026-09-06): pausar del
+> todo por ahora, no re-mapear todavía. Ver `docs/memory.md` para el
+> detalle completo del hallazgo.
+
 ---
 
 ## 1. Mapa General de Cobertura de Tablas (50 Tablas Legacy)
@@ -28,8 +43,8 @@ A continuación se detalla la matriz de mapeo que asocia cada una de las 50 tabl
 | **14** | `colpatria` | **Consolidado** | `App\Models\Colpatria` | Movimientos bancarios de la cuenta Colpatria. |
 | **15** | `conceptos` | **Consolidado** | `App\Models\Concepto` | Catálogo de conceptos contables usados en asientos. CRUD completo con protección histórica. |
 | **16** | `departamentos` | **Soporte** | *Query Builder Directo* | Listado estático de departamentos geográficos. |
-| **17** | `detallepedido` | **Consolidado** | `App\Models\DetallePedido` | Detalle de productos de facturas de compras a proveedores. |
-| **18** | `detalleventa` | **Consolidado** | `DB::table('detalleventa')` | Detalle de ítems vendidos a residentes en el POS de la Tienda. |
+| **17** | `detallepedido` | **Pendiente (real)** | `App\Models\DetallePedido` | Detalle de compras a proveedores — desconectado de la operación real, ver aviso arriba. La tabla vigente vive en `u727327027_tienda`. |
+| **18** | `detalleventa` | **Pendiente (real)** | `DB::table('detalleventa')` | Detalle de ítems vendidos en el POS — sin actividad desde antes de 2020, ver aviso arriba. La operación real usa `facturas`/`detallefactura` en `u727327027_tienda`. |
 | **19** | `diezmos` | **Consolidado** | `App\Models\Diezmo` | Libro contable de diezmos: ingresos/egresos del fondo espiritual con recálculo en cascada. |
 | **20** | `efectivo` | **Consolidado (histórico)** | *Sin modelo — no se expone por API* | Libro de caja con 13.750 filas pero **sin movimientos desde 2020-05-22**; el propio legado (`fundacion/tienda/efectivo.php`) ya consulta `efectivorobert`, no esta tabla. Decisión 2026-09-05: dato histórico muerto, no se migra ni se construye pantalla nueva. |
 | **21** | `efectivorobert` | **Consolidado** | `App\Models\EfectivoRobert` | Registro de caja menor/efectivo administrado por Robert. |
@@ -44,20 +59,20 @@ A continuación se detalla la matriz de mapeo que asocia cada una de las 50 tabl
 | **30** | `historialp` | **Consolidado** | `App\Models\Seguimiento` | Notas históricas de evolución psicológica. |
 | **31** | `jorec` | **Consolidado** | `App\Models\Jorec` | Caja contable de la sede JOREC; usada en el cálculo y abono de diezmos vía `idasientos`. |
 | **32** | `minutas` | **Consolidado** | `App\Models\Minuta` | Libro de visitas en portería (Minuta de Visitantes). |
-| **33** | `pagoproveedores` | **Consolidado** | `App\Models\PagoProveedor` | Historial de pagos y egresos realizados a proveedores. |
+| **33** | `pagoproveedores` | **Pendiente (real)** | `App\Models\PagoProveedor` | Pagos a proveedores — desconectado de la operación real, ver aviso arriba. La operación vigente usa `pagos`/`cobros` en `u727327027_tienda`. |
 | **34** | `pagos` | **Consolidado** | `App\Http\Controllers\Api\PagoController` | Historial general de cobros y abonos de pensiones. |
-| **35** | `pedidos` | **Consolidado** | `App\Models\Pedido` | Facturas y remisiones de compras de abastecimiento de productos. |
+| **35** | `pedidos` | **Pendiente (real)** | `App\Models\Pedido` | Compras de abastecimiento — desconectado de la operación real, ver aviso arriba. `u727327027_tienda.pedidos` tiene 3.175 filas vigentes vs. 540 acá. |
 | **36** | `permisos` | **Consolidado** | `App\Models\Permiso` | Control de salidas: historial de permisos de residentes con estado Fuera/Retornado, stats y filtros. |
 | **37** | `practicantes` | **Consolidado** | `App\Models\Practicante` | Registro y gestión de practicantes y pasantes de psicología con toggle de estado activo/inactivo. |
-| **38** | `productos` | **Consolidado** | `App\Models\Producto` | Catálogo de productos de la Tienda. |
-| **39** | `proveedores` | **Consolidado** | `App\Models\Proveedor` | Directorio y catálogo de proveedores del sistema. |
+| **38** | `productos` | **Pendiente (real)** | `App\Models\Producto` | Catálogo de productos — desconectado de la operación real, ver aviso arriba. `u727327027_tienda.productos` (225 filas, esquema distinto) es el vigente. |
+| **39** | `proveedores` | **Pendiente (real)** | `App\Models\Proveedor` | Directorio de proveedores — desconectado de la operación real, ver aviso arriba. |
 | **40** | `residentes` | **Consolidado** | `App\Models\Residente` | Ficha maestra de identidad del residente. |
 | **41** | `roca` | **Consolidado** | `App\Models\Roca` | Caja contable de la sede Jesús es mi Roca; usada en el cálculo y abono de diezmos vía `idasientos`. |
 | **42** | `roles` | **Consolidado** | `App\Models\User::getRoleName` | Mapeo de roles (SADMIN, PLANTA, PSICO, CAJERO). |
 | **43** | `seguimientos` | **Consolidado** | `App\Models\Seguimiento` | Diario de evolución clínica individual. |
 | **44** | `terapiac` | **Consolidado** | `App\Models\TerapiaC` | Fichas de terapias cognitivo-conductuales legacy. |
 | **45** | `terapiae` | **Consolidado** | `App\Models\TerapiaE` | Fichas de terapias espirituales/consejeros legacy. |
-| **46** | `tienda` | **Consolidado** | `App\Http\Controllers\Api\TiendaController` | Balance de recargas y cargos del POS del residente. |
+| **46** | `tienda` | **Pendiente (real)** | `App\Http\Controllers\Api\TiendaController` | Balance de recargas/cargos del POS — **esta tabla en `u727327027_fjemr` está muerta desde antes de 2020**. La `tienda` vigente (86.934 filas, actividad hasta 2026-09-06) vive en `u727327027_tienda`. Ver aviso arriba. |
 | **47** | `tipologia` | **Consolidado** | `DB::table('tipologia')` | Solo lectura: Entrada (1) / Salida (2). Expuesta via `/api/tipologias`. |
 | **48** | `uniformes` | **Consolidado** | `App\Models\Uniforme` | Inventario, entrega y cobro de uniformes a residentes. |
 | **49** | `usuarios` | **Consolidado** | `App\Models\User` | Credenciales de login administrativo. |
@@ -85,10 +100,10 @@ Estos procesos ya han sido migrados con éxito, están validados y en estado ope
 *   **Tablas Afectadas:** `seguimientos`, `historialp`.
 *   **Lógica de Negocio:** Timeline cronológico interactivo donde el psicólogo puede registrar sus sesiones de atención con resumen, evaluación, técnicas y tareas. Permite la exportación en PDF de cada seguimiento clínico individual firmado.
 
-### 4. Punto de Venta (POS Tienda)
+### 4. Punto de Venta (POS Tienda) — ⚠️ PENDIENTE REAL, ver aviso al inicio del documento
 *   **Lógica Backend:** [TiendaController.php](file:///Users/lgarcia/Documents/GitHub/Softclass/FundacionRebuild/backend/app/Http/Controllers/Api/TiendaController.php).
-*   **Tablas Afectadas:** `tienda`, `venta`, `detalleventa`, `productos`.
-*   **Lógica de Negocio:** Los residentes cuentan con una cuenta de tienda (`tienda`) donde se registran recargas (valorentrada) y compras (valorsalida). El POS permite escanear códigos de barras de productos (`Code128`), validar stock contra la base de datos, procesar la transacción atómica y descontar automáticamente del balance del residente.
+*   **Tablas Afectadas:** `tienda`, `venta`, `detalleventa`, `productos` — **todas desconectadas de la operación real** (sin actividad desde antes de 2020). Pausado por decisión de Luis (2026-09-06) hasta rediseñar contra `u727327027_tienda` (`facturas`/`detallefactura`/`mayor`).
+*   **Lógica de Negocio (como estaba implementada, no vigente):** Los residentes cuentan con una cuenta de tienda (`tienda`) donde se registran recargas (valorentrada) y compras (valorsalida). El POS permite escanear códigos de barras de productos (`Code128`), validar stock contra la base de datos, procesar la transacción atómica y descontar automáticamente del balance del residente.
 
 ### 5. Control de Agenda y Citas
 *   **Lógica Backend:** [AgendaController.php](file:///Users/lgarcia/Documents/GitHub/Softclass/FundacionRebuild/backend/app/Http/Controllers/Api/AgendaController.php).
@@ -111,11 +126,11 @@ Estos procesos ya han sido migrados con éxito, están validados y en estado ope
 *   **Tablas Afectadas:** `colombia`, `colpatria`, `efectivorobert`, `externa`, `asientosex`.
 *   **Lógica de Negocio:** Consolida en tiempo real los saldos unificados de los 4 canales financieros principales de la fundación (Bancolombia, Colpatria, Caja General en Efectivo administrada por Robert y la cuenta externa asociada a Daniel). Implementa un algoritmo atómico de **recálculo cronológico en cascada** para transacciones y ediciones históricas, garantizando la exactitud matemática de los libros contables sin impactar en el rendimiento de la base de datos histórica.
 
-### 9. Abastecimiento de Inventario (Compras y Proveedores)
+### 9. Abastecimiento de Inventario (Compras y Proveedores) — ⚠️ PENDIENTE REAL, ver aviso al inicio del documento
 *   **Lógica Backend:** [ProveedorController.php](file:///Users/lgarcia/Documents/GitHub/Softclass/FundacionRebuild/backend/app/Http/Controllers/Api/ProveedorController.php) y [PedidoController.php](file:///Users/lgarcia/Documents/GitHub/Softclass/FundacionRebuild/backend/app/Http/Controllers/Api/PedidoController.php).
 *   **Lógica Frontend:** [Compras Component](file:///Users/lgarcia/Documents/GitHub/Softclass/FundacionRebuild/frontend/src/app/components/compras/compras.ts) y [ComprasDetalle Component](file:///Users/lgarcia/Documents/GitHub/Softclass/FundacionRebuild/frontend/src/app/components/compras/compras-detalle.ts).
-*   **Tablas Afectadas:** `pedidos`, `detallepedido`, `proveedores`, `pagoproveedores`, `productos`, `colombia`, `colpatria`, `efectivorobert`, `pagos`, `asientos`.
-*   **Lógica de Negocio:** Gestión del flujo de compras e ingreso de mercancías. Permite registrar facturas/remisiones de proveedores en estado borrador, buscar productos del catálogo e incorporar unidades de stock en tiempo real mediante sumas dinámicas en el POS de la Tienda. Al finalizar y pagar la factura, de manera atómica se calcula el costo total, se registra el abono del proveedor, se asienta en el egreso de la cuenta bancaria elegida y se ejecuta el recálculo cronológico de saldos en cascada de forma automática.
+*   **Tablas Afectadas:** `pedidos`, `detallepedido`, `proveedores`, `pagoproveedores`, `productos` — **desconectadas de la operación real** (la vigente vive en `u727327027_tienda`: `pedidos` 3.175 filas, `detallepedido` 10.571, `productos` 225, más `facturas`/`detallefactura`/`mayor` sin equivalente acá). `colombia`, `colpatria`, `efectivorobert`, `pagos`, `asientos` (de `u727327027_fjemr`) sí siguen vigentes para el resto de la contabilidad, no forman parte de este hallazgo. Pausado por decisión de Luis (2026-09-06).
+*   **Lógica de Negocio (como estaba implementada, no vigente):** Gestión del flujo de compras e ingreso de mercancías. Permite registrar facturas/remisiones de proveedores en estado borrador, buscar productos del catálogo e incorporar unidades de stock en tiempo real mediante sumas dinámicas en el POS de la Tienda. Al finalizar y pagar la factura, de manera atómica se calcula el costo total, se registra el abono del proveedor, se asienta en el egreso de la cuenta bancaria elegida y se ejecuta el recálculo cronológico de saldos en cascada de forma automática.
 
 ### 10. Control de Uniformes y Lavandería
 *   **Lógica Backend:** [UniformeController.php](file:///Users/lgarcia/Documents/GitHub/Softclass/FundacionRebuild/backend/app/Http/Controllers/Api/UniformeController.php) y [LavadaController.php](file:///Users/lgarcia/Documents/GitHub/Softclass/FundacionRebuild/backend/app/Http/Controllers/Api/LavadaController.php).
@@ -165,8 +180,8 @@ Estos procesos están implementados en el código legacy dentro de la carpeta `f
 ### 3. Minuta de Control de Acceso y Visitantes (Migrado)
 *   **Consolidación:** Integrado en Angular y Laravel a través del componente `Minuta` y el controlador `MinutaController`. Permite búsquedas inteligentes y autocompletado en tiempo real.
 
-### 4. Abastecimiento de Inventario (Compras y Proveedores) (Migrado)
-*   **Consolidación:** Completamente integrado mediante el módulo `Compras / Stock`. Permite la facturación, carga de ítems, cálculo automático del valor de pedidos e inventario dinámico, además del pago integrado con recálculo en cascada en las cuentas contables.
+### 4. Abastecimiento de Inventario (Compras y Proveedores) — ⚠️ PENDIENTE REAL (2026-09-06)
+*   **Consolidación:** El módulo `Compras / Stock` está construido e implementado, pero contra la base `u727327027_fjemr` — desconectada de la operación real de compras/proveedores, que vive en `u727327027_tienda` desde antes de 2020. Pausado por decisión de Luis hasta rediseñar contra el esquema correcto. Ver aviso al inicio del documento y `docs/memory.md`/`docs/plan-corte.md` para el detalle completo.
 
 ### 5. Control de Uniformes de Residentes (Migrado)
 *   **Consolidación:** Completamente migrado mediante el módulo `Dotación / Lavadas`. Soporta la gestión física y de abonos de uniformes.
@@ -196,4 +211,5 @@ Para continuar la consolidación manteniendo la estabilidad y alta fidelidad del
 5.  **Reportes Avanzados (reingresos, psicología, salidas, resumen global):** ✅ Migrado
 6.  **Terapias Estructuradas (`terapiac`, `terapiae`):** ✅ Migrado
 7.  **Carnets de Residentes (PDF):** ✅ Migrado
+8.  **Tienda POS y Compras/Proveedores:** ⚠️ **Pendiente real** — rediseñar contra `u727327027_tienda` (`facturas`/`detallefactura`/`mayor`/`pedidos`/`productos`), la base donde vive la operación vigente. Pausado por decisión de Luis (2026-09-06), ver aviso al inicio del documento.
 
