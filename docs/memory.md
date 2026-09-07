@@ -642,3 +642,48 @@ precedencia SQL). 154/154 tests de backend pasan.
 
 ## Conclusión del Día
 Se han cubierto todos los requerimientos críticos de modernización, entregando una plataforma rápida, segura y estéticamente superior a la original.
+
+### Análisis: ¿esquema nuevo migrado, o seguir adaptando al legado? — descartado, con alternativa de bajo riesgo (7 de Septiembre, 2026)
+Luis planteó si, dado lo encontrado en el ciclo de comparación en vivo de
+esta semana (bugs en Ingreso y Ahorro, el hallazgo de Tienda/Compras),
+convenía más diseñar un esquema moderno y migrar la base legada en vez de
+seguir construyendo sobre el esquema original preservado (la arquitectura
+vigente, mandato explícito de `CLAUDE.md`: "sin alterar el esquema de base
+de datos legado").
+
+**Análisis causa por causa de los bugs de esta semana**: ninguno lo hubiera
+evitado un esquema nuevo. `tipo_sanguineo` y `encargado` (Agenda) fueron
+migraciones olvidadas — pasan igual en cualquier esquema si alguien se
+olvida de correrlas. El bug de Ahorro fue lógica de aplicación
+inconsistente (los otros 5 libros ya usaban el patrón de cascada correcto;
+Ahorro se quedó afuera) — un esquema nuevo no arregla que el código no siga
+su propio estándar. El hallazgo de Tienda/Compras fue un problema de
+**desconocimiento de una fuente de datos** (nadie sabía que existía
+`u727327027_tienda`), no de que el esquema de `fjemr` fuera incómodo —
+eso se descubre igual migrando o no.
+
+**El único hallazgo que sí es un problema real de diseño**: se auditó el
+algoritmo de recálculo en cascada (el mismo patrón que rompió a Ahorro) en
+los 6 controllers que lo usan y se encontró **duplicado al menos 13 veces**
+— incluyendo 3 canales (`colombia`, `colpatria`, `efectivorobert`)
+reimplementados palabra por palabra en dos archivos distintos
+(`ContabilidadController` y `DiezmoController`). Eso es exactamente la
+clase de problema que ya causó el bug de Ahorro (un fix aplicado en un
+lugar no se propaga a las copias), y **se resuelve sin tocar el esquema
+legado** — es 100% capa de aplicación Laravel.
+
+**Decisión**: se descarta migrar a un esquema moderno para el resto del
+sistema — el costo (meses de ETL sobre 8 años de datos financieros/
+clínicos reales, reescribir 154+ tests, reescribir cada modelo/controller,
+repetir todo el ciclo de comparación en vivo) no se justifica contra bugs
+que en su mayoría no son de diseño de esquema, y retrasaría indefinidamente
+el corte a producción que ya está cerca (`plan-corte.md`, Big Bang). Se
+aprueba en cambio la alternativa de bajo riesgo: consolidar el algoritmo de
+cascada en un servicio único, spec formal en
+`docs/specs/consolidacion-cascada-contable.md`, pendiente de aprobación de
+Luis antes de implementar. **Tienda/Compras se mantiene fuera de todo
+esto** — sistema aparte, obsoleto, sin actividad real desde antes de 2020,
+pausado por decisión explícita de Luis (2026-09-06) y confirmado que se
+queda así (2026-09-07) — no forma parte de esta spec ni de ningún refactor
+mientras no haya prioridad y un ciclo propio (Analista→Arquitecto→PM) para
+encararlo contra el esquema real (`u727327027_tienda`).

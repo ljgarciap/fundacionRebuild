@@ -176,6 +176,24 @@ no necesitar coexistencia entre sistemas.
       encararlo como su propio ciclo (Analista/Arquitecto/PM) contra el
       esquema de `u727327027_tienda`, no como un fix rápido. Ver
       `docs/memory.md` para el detalle completo.
+- [x] **CERRADO — ¿esquema nuevo migrado, o seguir adaptando al legado?**
+      (2026-09-07). Luis pidió analizar a fondo si convenía diseñar un
+      esquema moderno y migrar la base legada en vez de la arquitectura
+      vigente ("nunca alterar el esquema legado", `CLAUDE.md`). Análisis:
+      ninguno de los bugs reales de esta semana (Ingreso, Ahorro,
+      Tienda/Compras) lo hubiera evitado un esquema nuevo — son migraciones
+      olvidadas o lógica de aplicación inconsistente, no problemas de
+      diseño de esquema. **Se descarta migrar** — el costo (meses de ETL
+      sobre datos reales, reescribir todo, repetir el ciclo de comparación
+      en vivo) retrasaría el corte sin resolver la causa real. Se aprueba
+      la alternativa de bajo riesgo encontrada en el análisis: consolidar
+      el algoritmo de recálculo en cascada (duplicado 13 veces en 6
+      controllers, la única duplicación real de lógica encontrada) en un
+      servicio único, spec en
+      `docs/specs/consolidacion-cascada-contable.md`, pendiente de
+      aprobación de Luis antes de implementar. Tienda/Compras confirmado
+      fuera de esto — se queda como está, sistema aparte, obsoleto. Ver
+      `docs/memory.md` para el análisis completo.
 - [ ] Backup manual explícito de la base real, tomado justo antes de la
       ventana de corte (ver § 1 — no hay backups automáticos).
 - [ ] Fecha/horario de la ventana de corte (a definir con Luis).
