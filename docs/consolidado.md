@@ -76,7 +76,7 @@ A continuación se detalla la matriz de mapeo que asocia cada una de las 50 tabl
 | **47** | `tipologia` | **Consolidado** | `DB::table('tipologia')` | Solo lectura: Entrada (1) / Salida (2). Expuesta via `/api/tipologias`. |
 | **48** | `uniformes` | **Consolidado** | `App\Models\Uniforme` | Inventario, entrega y cobro de uniformes a residentes. |
 | **49** | `usuarios` | **Consolidado** | `App\Models\User` | Credenciales de login administrativo. |
-| **50** | `validacion` | **Consolidado** | `App\Models\Validacion` | Doble función: auditoría de tokens biométricos de firmas/huellas, **y** repositorio del hash MD5 de login legacy (`usuarios.password` viene vacío en el dump — el MD5 real vivía acá, un registro por `idusuarios`). `AuthController::login` la usa como fallback cuando Bcrypt no matchea, y hace upgrade silencioso a Bcrypt en `usuarios.password` al validar por esta vía (verificado 2026-09-05). |
+| **50** | `validacion` | **Consolidado** | `App\Models\Validacion` (nunca invocado) | Repositorio del hash MD5 de login legacy únicamente (`usuarios.password` viene vacío en el dump — el MD5 real vivía acá, un registro por `idusuarios`). `AuthController::login` la usa directo por `DB::table`, como fallback cuando Bcrypt no matchea, con upgrade silencioso a Bcrypt en `usuarios.password` al validar por esta vía (verificado 2026-09-05). **Corrección 2026-09-06**: la descripción anterior decía "doble función, también auditoría de tokens biométricos" — confirmado que eso es incorrecto, el modelo `Validacion` no se usa en ningún controller y el legado tampoco usa esta tabla para biometría. La biometría real (firma/huella) vive en `residentes.firma_path`/`huella_path`, sin relación con esta tabla — ver módulo 2 más abajo. |
 
 ---
 
